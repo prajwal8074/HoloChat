@@ -19,8 +19,8 @@ import java.lang.Math;
 import com.google.android.material.tabs.TabLayout;
 import android.content.pm.ServiceInfo;
 
-import com.google.android.gms.ads.*;
-import com.google.android.gms.ads.initialization.*;
+//import com.google.android.gms.ads.*;
+//import com.google.android.gms.ads.initialization.*;
 
 public class ChatHeadService extends Service
 {

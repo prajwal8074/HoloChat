@@ -8,6 +8,7 @@
 /ChatHeadData/chatHeadSensitivity
 /ChatHeadData/chatsPerAd
 /ChatHeadData/hapticsEnabled
+/ChatHeadData/keepNotifications
 /NotificationListenerData/tgtAppsPkg
 /NotificationListenerData/ignoreTitles
 /NotificationListenerData/ignoreTexts

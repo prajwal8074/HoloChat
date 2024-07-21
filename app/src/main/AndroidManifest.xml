@@ -53,9 +53,9 @@
 			android:permission="android.permission.SYSTEM_ALERT_WINDOW"
             android:exported="false"/>
         
-        <meta-data
+        <!--meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-6965098559713797~9098849020"/>
+            android:value="ca-app-pub-6965098559713797~9098849020"/-->
 		
     </application>
 

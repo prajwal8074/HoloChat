@@ -17,9 +17,11 @@ public class NotificationScannerService extends NotificationListenerService
 { 
     File dataDir;
 	File NLdataDir;
+	File CHDataDir;
 	File tgtAppsPkgFile;
 	File ignoreTitlesFile;
 	File ignoreTextsFile;
+	File keepNotificationsFile;
 	boolean NLConnected = false;
 	boolean chatHeadCreated;
 	int SENDER = 0;
@@ -559,9 +561,11 @@ public class NotificationScannerService extends NotificationListenerService
 
 		dataDir = (Build.VERSION.SDK_INT<=29)? (new File(Environment.getExternalStorageDirectory(), "SmartChatIO")) : getExternalFilesDir(null);
 		NLdataDir = new File(dataDir, "NotificationListenerData");
+		CHDataDir = new File(dataDir, "ChatHeadData");
 		tgtAppsPkgFile = new File(NLdataDir, "tgtAppsPkg");
 		ignoreTitlesFile = new File(NLdataDir, "ignoreTitles");
 		ignoreTextsFile = new File(NLdataDir, "ignoreTexts");
+		keepNotificationsFile = new File(CHDataDir, "keepNotifications");
 
 		try
 		{
@@ -630,7 +634,8 @@ public class NotificationScannerService extends NotificationListenerService
 						notesToSend.add(sbn);
 					}
 					sbns.add(sbn);
-					cancelNotification(sbn.getKey());
+					if(!Boolean.parseBoolean(readFromFile(keepNotificationsFile, "SEPARATOR_NEW_LINE")[0]))
+						cancelNotification(sbn.getKey());
 				}//else
 					//Toast.makeText(getApplicationContext(), "ignored", Toast.LENGTH_LONG).show();
 

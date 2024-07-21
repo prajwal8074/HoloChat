@@ -31,8 +31,8 @@ public class AppActivity extends Activity
 		Manifest.permission.WRITE_EXTERNAL_STORAGE
 	};
 	String[] permissionsReason = new String[]{
-		"\"Vibrate\" permission is required",
-		"\"Read Contacts\" permission is required for messaging",
+		"\"Vibrate\" permission is required for Haptics",
+		"\"Read Contacts\" permission is required for messaging a contact",
 		"\"Write External Storage\" permission is required for Bot"
 	};
 
@@ -49,6 +49,8 @@ public class AppActivity extends Activity
 	int baseButtonsHeight;
 	float chatHeadSizeDiv;
 	int chatHeadSensitivity;
+	boolean hapticsEnabled;
+	boolean keepNotifications;
 
 	RelativeLayout baseLayout;
 	Button[] baseButtons;
@@ -130,6 +132,8 @@ public class AppActivity extends Activity
 		final File sentsFile = new File(CHDataDir, "sents");
 		final File ignoredsFile = new File(CHDataDir, "ignoreds");
 		final File chatHeadSensitivityFile = new File(CHDataDir, "chatHeadSensitivity");
+		final File hapticsEnabledFile = new File(CHDataDir, "hapticsEnabled");
+		final File keepNotificationsFile = new File(CHDataDir, "keepNotifications");
 		final File NLDataDir = new File(dataDir, "NotificationListenerData");
 		final File tgtAppsPkgFile = new File(NLDataDir, "tgtAppsPkg");
 		final File ignoreTitlesFile = new File(NLDataDir, "ignoreTitles");
@@ -187,8 +191,6 @@ public class AppActivity extends Activity
 			for(String autoSendMsgU : readFromFile(autoSendMsgsUFile, "SEPARATOR_NEW_LINE"))
 				autoSendMsgsU.add(autoSendMsgU);
 
-			chatHeadSizeDiv = Float.valueOf(readFromFile(chatHeadSizeDivFile, "SEPARATOR_NEW_LINE")[0]);
-
 			sents = new ArrayList<String>();
 			for(String sent : readFromFile(sentsFile, "SEPARATOR_NEW_LINE"))
 				sents.add(sent);
@@ -218,12 +220,14 @@ public class AppActivity extends Activity
 			baseLayout = new RelativeLayout(this);
 
 			try
-					{
-						chatHeadSizeDiv = Float.valueOf(readFromFile(chatHeadSizeDivFile, "SEPARATOR_NEW_LINE")[0]);
-						chatHeadSensitivity = Integer.parseInt(readFromFile(chatHeadSensitivityFile, "SEPARATOR_NEW_LINE")[0]);
-					}catch (IOException e)
-					{}catch (NumberFormatException e)
-					{}
+			{
+				chatHeadSizeDiv = Float.valueOf(readFromFile(chatHeadSizeDivFile, "SEPARATOR_NEW_LINE")[0]);
+				chatHeadSensitivity = Integer.parseInt(readFromFile(chatHeadSensitivityFile, "SEPARATOR_NEW_LINE")[0]);
+				hapticsEnabled = Boolean.parseBoolean(readFromFile(hapticsEnabledFile, "SEPARATOR_NEW_LINE")[0]);
+				keepNotifications = Boolean.parseBoolean(readFromFile(keepNotificationsFile, "SEPARATOR_NEW_LINE")[0]);
+			}catch (IOException e)
+			{}catch (NumberFormatException e)
+			{}
 
 			baseButtonsTotal = 7;
 
@@ -265,7 +269,6 @@ public class AppActivity extends Activity
 			final String NW = "Not Working?";
 			final String Su = "Review App";
 			final String S = "Settings";
-			final String C = "Credits";
 			final String[] baseButtonsText = new String[]{
 				CCH,
 				TA,
@@ -273,7 +276,7 @@ public class AppActivity extends Activity
 				NW,
 				Su,
 				S,
-				C
+				""
 			};
 			final boolean[] baseButtonsExpandable = new boolean[]{
 				false,
@@ -281,7 +284,6 @@ public class AppActivity extends Activity
 				true,
 				true,
 				false,
-				true,
 				true
 			};
 			baseButtonsExpanded = new View[baseButtonsTotal];
@@ -729,14 +731,16 @@ public class AppActivity extends Activity
 										final int settingsTotal = 5;
 
 										final String[] sTexts = new String[]{
-											"Chat Head Size",
-											"Chat Head Movement Sensitivity",
-											"Bot Data",
-											"Notifications Settings",
-											"History"
+											" Chat Head",
+											"",
+											"",
+											" Bot",
+											" Notifications"
 										};
 
 										final ListView sList = new ListView(getApplicationContext());
+										sList.setDivider(new ColorDrawable(Color.parseColor("#008392")));
+										sList.setDividerHeight(5);
 										BaseAdapter sListAdapter = new BaseAdapter(){
 
 											@Override
@@ -767,14 +771,27 @@ public class AppActivity extends Activity
 												view = new LinearLayout(getApplicationContext());
 												((LinearLayout)view).setOrientation(LinearLayout.VERTICAL);
 
-												TextView sText = new TextView(getApplicationContext());
-												sText.setTextColor(Color.WHITE);
-												sText.setText("\n" + sTexts[i]);
-												LinearLayout.LayoutParams sTextParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
-												((LinearLayout)view).addView(sText, sTextParams);
+												if(!sTexts[i].equals(""))
+												{
+													TextView sText = new TextView(getApplicationContext());
+													sText.setTextAppearance(android.R.style.TextAppearance_Medium);
+													if(i==0)
+														sText.setTextAppearance(android.R.style.TextAppearance_Large);
+													sText.setTextColor(Color.WHITE);
+													sText.setTypeface(Typeface.DEFAULT_BOLD);
+													sText.setText(sTexts[i]);
+													LinearLayout.LayoutParams sTextParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+													((LinearLayout)view).addView(sText, sTextParams);
+												}
 
 												if(i == 0)
 												{
+													TextView info = new TextView(getApplicationContext());
+													info.setTextAppearance(android.R.style.TextAppearance_Medium);
+													info.setTextColor(Color.WHITE);
+													info.setText(" Size");
+													LinearLayout.LayoutParams infoParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+
 													final LinearLayout sViewLayout = new LinearLayout(getApplicationContext());
 													sViewLayout.setOrientation(LinearLayout.VERTICAL);
 
@@ -874,13 +891,20 @@ public class AppActivity extends Activity
 													sViewLayout.addView(chatHeadImg, imgParams);
 
 													LinearLayout.LayoutParams sViewLayoutParams = new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
+													((LinearLayout)view).addView(info, infoParams);
 													((LinearLayout)view).addView(sViewLayout, sViewLayoutParams);
 												}
 
 												else
-													
+
 												if(i == 1)
 												{
+													TextView info = new TextView(getApplicationContext());
+													info.setTextAppearance(android.R.style.TextAppearance_Medium);
+													info.setTextColor(Color.WHITE);
+													info.setText(" Sensitivity");
+													LinearLayout.LayoutParams infoParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+
 													final LinearLayout sViewLayout1 = new LinearLayout(getApplicationContext());
 													sViewLayout1.setOrientation(LinearLayout.VERTICAL);
 
@@ -969,16 +993,48 @@ public class AppActivity extends Activity
 													sViewLayout1.addView(sizeBar1, sizeBar1Params);
 
 													LinearLayout.LayoutParams sViewLayout1Params = new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
+													((LinearLayout)view).addView(info, infoParams);
 													((LinearLayout)view).addView(sViewLayout1, sViewLayout1Params);
 												}
-												
+
 												else
 
 												if(i == 2)
 												{
 													TextView info = new TextView(getApplicationContext());
+													info.setTextAppearance(android.R.style.TextAppearance_Medium);
+													info.setTextColor(Color.WHITE);
+													info.setText(" Haptic Feedback");
+													LinearLayout.LayoutParams infoParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+
+													CheckBox checkbox = new CheckBox(getApplicationContext());
+													checkbox.setText("\nEnable Haptics\n");
+													checkbox.setTextColor(Color.WHITE);
+													checkbox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));//setButtonTintList is accessible directly on API>19
+													checkbox.setChecked(hapticsEnabled);
+													checkbox.setTextColor(Color.LTGRAY);
+													checkbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
+													       @Override
+													       public void onCheckedChanged(CompoundButton buttonView,boolean isChecked) {
+													    		hapticsEnabled = isChecked;
+													       }
+													   }
+													);
+
+													LinearLayout.LayoutParams checkboxParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+													((LinearLayout)view).addView(info, infoParams);
+													((LinearLayout)view).addView(checkbox, checkboxParams);
+												}
+
+												else
+
+												if(i == 3)
+												{
+													TextView info = new TextView(getApplicationContext());
+													info.setTextAppearance(android.R.style.TextAppearance_Medium);
 													info.setTextColor(Color.LTGRAY);
-													info.setText("(teach bot the pattern to reply various messages)");
+													info.setText(" Add or delete saved data");
 													LinearLayout.LayoutParams infoParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
 
 													Button addButton = new Button(getApplicationContext());
@@ -1574,11 +1630,30 @@ public class AppActivity extends Activity
 
 												else
 
-												if(i == 3)
+												if(i == 4)
 												{
+													CheckBox checkbox = new CheckBox(getApplicationContext());
+													checkbox.setText("\nKeep Notifications\n");
+													checkbox.setTextColor(Color.WHITE);
+													checkbox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));//setButtonTintList is accessible directly on API>19
+													checkbox.setChecked(keepNotifications);
+													checkbox.setTextColor(Color.LTGRAY);
+													checkbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
+													       @Override
+													       public void onCheckedChanged(CompoundButton buttonView,boolean isChecked) {
+													    		keepNotifications = isChecked;
+													       }
+													   }
+													);
+
+													LinearLayout.LayoutParams checkboxParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+													((LinearLayout)view).addView(checkbox, checkboxParams);
+
 													TextView igTitle = new TextView(getApplicationContext());
+													igTitle.setTextAppearance(android.R.style.TextAppearance_Medium);
 													igTitle.setTextColor(Color.LTGRAY);
-													igTitle.setText("Ignore Notifications with Title : ");
+													igTitle.setText(" Ignore Notifications with Titles : ");
 													LinearLayout.LayoutParams igTitleParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
 
 													Button showTitlesButton = new Button(getApplicationContext());
@@ -1706,8 +1781,9 @@ public class AppActivity extends Activity
 													((LinearLayout)view).addView(addTitleButton, addButtonParams);
 
 													TextView igText = new TextView(getApplicationContext());
+													igText.setTextAppearance(android.R.style.TextAppearance_Medium);
 													igText.setTextColor(Color.LTGRAY);
-													igText.setText("Ignore Notifications with Text : ");
+													igText.setText(" Ignore Notifications with Texts : ");
 													LinearLayout.LayoutParams igTextParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
 
 													Button showTextsButton = new Button(getApplicationContext());
@@ -1835,9 +1911,9 @@ public class AppActivity extends Activity
 													((LinearLayout)view).addView(addTextButton, addTextButtonParams);
 												}
 
-												else
+												/*else
 
-												if(i == 4)
+												if(i == 3)
 												{
 													Button showSentsButton = new Button(getApplicationContext());
 													showSentsButton.setText("Show Send History");
@@ -2021,7 +2097,7 @@ public class AppActivity extends Activity
 
 													((LinearLayout)view).addView(showSentsButton, showSentsButtonParams);
 													((LinearLayout)view).addView(showIgnoredsButton, showIgnoredsButtonParams);
-												}
+												}*/
 
 												return view;
 											}
@@ -2046,6 +2122,16 @@ public class AppActivity extends Activity
 														chatHeadSensitivityFile.delete();
 														chatHeadSensitivityFile.createNewFile();
 														writeToFile(chatHeadSensitivityFile, new String[]{String.valueOf(chatHeadSensitivity)}, "SEPARATOR_NEW_LINE");
+													}
+													if (hapticsEnabled != Boolean.parseBoolean(readFromFile(hapticsEnabledFile, "SEPARATOR_NEW_LINE")[0])) {
+														hapticsEnabledFile.delete();
+														hapticsEnabledFile.createNewFile();
+														writeToFile(hapticsEnabledFile, new String[]{String.valueOf(hapticsEnabled)}, "SEPARATOR_NEW_LINE");
+													}
+													if (keepNotifications != Boolean.parseBoolean(readFromFile(keepNotificationsFile, "SEPARATOR_NEW_LINE")[0])) {
+														keepNotificationsFile.delete();
+														keepNotificationsFile.createNewFile();
+														writeToFile(keepNotificationsFile, new String[]{String.valueOf(keepNotifications)}, "SEPARATOR_NEW_LINE");
 													}
 
 													boolean updateNL = false;
