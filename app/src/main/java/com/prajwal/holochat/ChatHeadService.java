@@ -2156,6 +2156,7 @@ public class ChatHeadService extends Service
 																																				.putExtra("data", new String[][]{{"Bot"}, { bot.getReply(replyStr)[0] }})
 																																				.putExtra("icon", botIcon)
 																																				.putExtra("id", String.valueOf(random.nextInt()))
+																																				//.putExtra("channel", "channel")
 																																				.putExtra("bIcon", (Icon)null)
 																																				.putExtra("image", (Bitmap)null)
 																																				.putExtra("pkg", appPkg);
@@ -2420,17 +2421,17 @@ public class ChatHeadService extends Service
 																																					((ImageView)buttonN).setRotation(-45f);
 
 																																					requestButtonIntents(ids.get(chatIndex));
-																																				itemView.removeView(buttonN);
+																																					itemView.removeView(buttonN);
 
-																																				for(int c = 0;c < ids.size();c++)
-																																					if(ids.get(c).equals(ids.get(chatIndex)))
-																																					{
-																																						buttonIcons.set(c, null);
-																																						buttonTexts.set(c, null);
-																																					}
+																																					for(int c = 0;c < ids.size();c++)
+																																						if(ids.get(c).equals(ids.get(chatIndex)))
+																																						{
+																																							buttonIcons.set(c, null);
+																																							buttonTexts.set(c, null);
+																																						}
 
-																																				replyViewParams.width += buttonNParams.width;
-																																				itemView.updateViewLayout(replyView, replyViewParams);
+																																					replyViewParams.width += buttonNParams.width;
+																																					replyLayout.updateViewLayout(replyView, replyViewParams);
 																																				}
 																																				else
 																																				if(pkg.contains("insta") || pkg.contains("viber") || actTitle.contains("heart") || actTitle.contains("love"))
@@ -2439,17 +2440,17 @@ public class ChatHeadService extends Service
 																																					((ImageView)buttonN).setRotation(1.25f);
 
 																																					requestButtonIntents(ids.get(chatIndex));
-																																				itemView.removeView(buttonN);
+																																					itemView.removeView(buttonN);
 
-																																				for(int c = 0;c < ids.size();c++)
+																																					for(int c = 0;c < ids.size();c++)
 																																					if(ids.get(c).equals(ids.get(chatIndex)))
 																																					{
 																																						buttonIcons.set(c, null);
 																																						buttonTexts.set(c, null);
 																																					}
 
-																																				replyViewParams.width += buttonNParams.width;
-																																				itemView.updateViewLayout(replyView, replyViewParams);
+																																					replyViewParams.width += buttonNParams.width;
+																																					replyLayout.updateViewLayout(replyView, replyViewParams);
 																																				}																																		}
 																																		}
 																																	};
@@ -3258,7 +3259,7 @@ public class ChatHeadService extends Service
 			//data thingies
 			if(type.equals("update"))
 			{
-				//Toast.makeText(getApplicationContext(), "type:update", Toast.LENGTH_LONG).show();
+				//Toast.makeText(getApplicationContext(), "\'"+intent.getStringExtra("channel")+"\'", Toast.LENGTH_LONG).show();
 
 				String pkg = intent.getStringExtra("pkg");
 				String id = intent.getStringExtra("id");

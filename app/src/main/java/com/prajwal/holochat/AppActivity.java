@@ -2308,6 +2308,7 @@ public class AppActivity extends Activity
 											.putExtra("data", new String[][]{{"Bot"}, {abstracts[REQ].get(absIndices[0])[absIndices[1]]}})
 											.putExtra("icon", Icon.createWithResource(AppActivity.this, R.drawable.ic_logo_small))
 											.putExtra("id", new Random().nextInt())
+											//.putExtra("channel", "channel")
 											.putExtra("bIcon", (Icon)null)
 											.putExtra("image", (Bitmap)null)
 											.putExtra("pkg", getPackageName());

@@ -71,16 +71,19 @@ public class NotificationScannerService extends NotificationListenerService
 
 					if(notesToSend.size() > 0)
 					{
-						sendNotification(ChatHeadService.class, notesToSend.get(0));
+						if(sendNotification(ChatHeadService.class, notesToSend.get(0)))
+						{
+							startService(new Intent(this, ChatHeadService.class)
+										 .putExtra("type", "update")
+										 .putExtra("data", new String[][]{{"Bot"}, {"hello"}})
+										 .putExtra("icon", Icon.createWithResource(this, R.drawable.ic_logo_small))
+										 .putExtra("id", String.valueOf(new Random().nextInt()))
+										 //.putExtra("channel", "channel")
+										 .putExtra("bIcon", (Icon)null)
+										 .putExtra("image", (Bitmap)null)
+										 .putExtra("pkg", getPackageName()));
+						}
 						notesToSend.remove(0);
-						startService(new Intent(this, ChatHeadService.class)
-									 .putExtra("type", "update")
-									 .putExtra("data", new String[][]{{"Bot"}, {"hello"}})
-									 .putExtra("icon", Icon.createWithResource(this, R.drawable.ic_logo_small))
-									 .putExtra("id", String.valueOf(new Random().nextInt()))
-									 .putExtra("bIcon", (Icon)null)
-									 .putExtra("image", (Bitmap)null)
-									 .putExtra("pkg", getPackageName()));
 					}
 
 					break;
@@ -135,14 +138,14 @@ public class NotificationScannerService extends NotificationListenerService
 								String sender = intent.getStringExtra("sender");
 								String message = intent.getStringExtra("message");
 								String reply = intent.getStringExtra("reply");
-								Bundle localBundle = sbn.getNotification().extras;
+								Bundle localBundle = n.extras;
 								//Notification.Action action = null;
 								
 								String template = "";
 
 									try
 									{
-										template = sbn.getNotification().extras.getString(Notification.EXTRA_TEMPLATE);
+										template = n.extras.getString(Notification.EXTRA_TEMPLATE);
 									}catch(Exception e)
 									{
 										template = null;
@@ -311,7 +314,7 @@ public class NotificationScannerService extends NotificationListenerService
 
 									try
 									{
-										template = sbn.getNotification().extras.getString(Notification.EXTRA_TEMPLATE);
+										template = n.extras.getString(Notification.EXTRA_TEMPLATE);
 									}catch(Exception e)
 									{
 										template = null;
@@ -445,7 +448,7 @@ public class NotificationScannerService extends NotificationListenerService
 
 									try
 									{
-										template = sbn.getNotification().extras.getString(Notification.EXTRA_TEMPLATE);
+										template = n.extras.getString(Notification.EXTRA_TEMPLATE);
 									}catch(Exception e)
 									{
 										template = null;
@@ -629,13 +632,19 @@ public class NotificationScannerService extends NotificationListenerService
 					}
 					else
 					{
-						initService(ChatHeadService.class);
-						updated = false;
-						notesToSend.add(sbn);
+						if(shouldSendNotification(sbn))
+						{
+							initService(ChatHeadService.class);
+							updated = false;
+							notesToSend.add(sbn);
+						}
 					}
-					sbns.add(sbn);
-					if(!Boolean.parseBoolean(readFromFile(keepNotificationsFile, "SEPARATOR_NEW_LINE")[0]))
-						cancelNotification(sbn.getKey());
+					if(shouldSendNotification(sbn))
+					{
+						sbns.add(sbn);
+						if(!Boolean.parseBoolean(readFromFile(keepNotificationsFile, "SEPARATOR_NEW_LINE")[0]))
+							cancelNotification(sbn.getKey());
+					}
 				}//else
 					//Toast.makeText(getApplicationContext(), "ignored", Toast.LENGTH_LONG).show();
 
@@ -674,14 +683,15 @@ public class NotificationScannerService extends NotificationListenerService
 
 		//notification details
 		String pkg = sbn.getPackageName();
-		String title = sbn.getNotification().extras.get(Notification.EXTRA_TITLE).toString();
+		Notification n = sbn.getNotification();
+		String title = n.extras.get(Notification.EXTRA_TITLE).toString();
 		String template = "";
 		boolean titleIsAppName = false;
 		int maxNameLength = 30;
 
 		try
 		{
-			template = sbn.getNotification().extras.getString(Notification.EXTRA_TEMPLATE);
+			template = n.extras.getString(Notification.EXTRA_TEMPLATE);
 			//Toast.makeText(getApplicationContext(), template, Toast.LENGTH_LONG).show();
 		}catch(Exception e)
 		{
@@ -696,7 +706,7 @@ public class NotificationScannerService extends NotificationListenerService
 				data[SENDER] = new String[1];
 				data[MESSAGE] = new String[1];
 
-				String text = sbn.getNotification().extras.get(Notification.EXTRA_TEXT).toString();
+				String text = n.extras.get(Notification.EXTRA_TEXT).toString();
 
 				if(!titleIsAppName)
 				{
@@ -950,62 +960,106 @@ public class NotificationScannerService extends NotificationListenerService
 	{
 		try
 		{
-			Intent intentSendNotes = new Intent(NotificationScannerService.this, c);
-			intentSendNotes.putExtra("type", "update");
-			intentSendNotes.putExtra("data", adaptData(getNotificationData(sbn), sbn.getPackageName()));
-			intentSendNotes.putExtra("pkg", sbn.getPackageName());
-			intentSendNotes.putExtra("id", sbn.getKey());
-			intentSendNotes.putExtra("icon", sbn.getNotification().getLargeIcon() != null ? sbn.getNotification().getLargeIcon() : sbn.getNotification().getSmallIcon());
-			Icon bIcon = null;
-			String bText = null;
 			Notification n = sbn.getNotification();
 		    String pkg = sbn.getPackageName().toLowerCase();
-			if(sbn.getNotification().actions != null)
-				for(int i = 0; i < NotificationCompat.getActionCount(n); i++)
-											{
-												NotificationCompat.Action act = NotificationCompat.getAction(n, i);
-												String actTitle = act.title.toString().toLowerCase();
-												if(act != null)
-		            								if(!(actTitle.contains("reply") || act.title.toString().toLowerCase().contains("message") || pkg.equals("com.whatsapp")) && act.actionIntent != null)
-		                							{
-		                								if(pkg.contains("insta") || pkg.contains("viber") || actTitle.contains("heart") || actTitle.contains("love"))
-		                								{
-		                									bIcon = heartIcon;
-		                								}else
-		                								if(actTitle.contains("like") || actTitle.contains("thumb"))
-		                								{
-		                										bIcon = likeIcon;
-		                								}else
-		                								if(actTitle.contains("mark"))
-		                								{
-		                									bIcon = doubleTickIcon;
-		                								}else
-		                								if(actTitle.contains("snooze") || actTitle.contains("mute") || actTitle.contains("silent"))
-		                								{
-		                									bIcon = zzzIcon;
-		                								}
+			
+			if(shouldSendNotification(sbn))
+			{
+				Intent intentSendNotes = new Intent(NotificationScannerService.this, c);
+				intentSendNotes.putExtra("type", "update");
+				intentSendNotes.putExtra("data", adaptData(getNotificationData(sbn), sbn.getPackageName()));
+				intentSendNotes.putExtra("pkg", sbn.getPackageName());
+				intentSendNotes.putExtra("id", sbn.getKey());
+				//intentSendNotes.putExtra("channel", sbn.getNotification().getChannelId());
+				intentSendNotes.putExtra("icon", n.getLargeIcon() != null ? n.getLargeIcon() : n.getSmallIcon());
+				Icon bIcon = null;
+				String bText = null;
+				if(n.actions != null)
+					for(int i = 0; i < NotificationCompat.getActionCount(n); i++)
+					{
+						NotificationCompat.Action act = NotificationCompat.getAction(n, i);
+						String actTitle = act.title.toString().toLowerCase();
+						if(act != null)
+							if(!(actTitle.contains("reply") || act.title.toString().toLowerCase().contains("message") || pkg.equals("com.whatsapp")) && act.actionIntent != null)
+							{
+								if(pkg.contains("insta") || pkg.contains("viber") || actTitle.contains("heart") || actTitle.contains("love"))
+								{
+									bIcon = heartIcon;
+								}else
+								if(actTitle.contains("like") || actTitle.contains("thumb"))
+								{
+										bIcon = likeIcon;
+								}else
+								if(actTitle.contains("mark"))
+								{
+									bIcon = doubleTickIcon;
+								}else
+								if(actTitle.contains("snooze") || actTitle.contains("mute") || actTitle.contains("silent"))
+								{
+									bIcon = zzzIcon;
+								}
 
-		                								bText = actTitle;
-		                								break;
-	                								}
-											}
-			intentSendNotes.putExtra("bIcon", bIcon);
-		    intentSendNotes.putExtra("bText", bText);
+								bText = actTitle;
+								break;
+							}
+					}
+				intentSendNotes.putExtra("bIcon", bIcon);
+			    intentSendNotes.putExtra("bText", bText);
 
-			if(sbn.getNotification().extras.get(Notification.EXTRA_PICTURE) != null)
-				intentSendNotes.putExtra("image", (Bitmap) sbn.getNotification().extras.get(Notification.EXTRA_PICTURE));
-			else
-				intentSendNotes.putExtra("image", (Bitmap)null);
+				if(n.extras.get(Notification.EXTRA_PICTURE) != null)
+					intentSendNotes.putExtra("image", (Bitmap) n.extras.get(Notification.EXTRA_PICTURE));
+				else
+					intentSendNotes.putExtra("image", (Bitmap)null);
 
-			startService(intentSendNotes);
-			updated = false;
-
-			return true;
+				startService(intentSendNotes);
+				updated = false;
+				return true;
+			}else
+				return false;
 		}catch(Exception e)
 		{
 			//sendError(c, e);
 			return false;
 		}
+	}
+
+	public boolean shouldSendNotification(StatusBarNotification sbn)
+	{
+		Notification n = sbn.getNotification();
+		String channelId = n.getChannelId();
+		String pkg = sbn.getPackageName().toLowerCase();
+
+		boolean shouldSend = true;
+		if(pkg.equals("com.whatsapp"))
+			shouldSend = channelId.contains("chat");
+		else
+		if(pkg.equals("org.telegram.messenger"))
+			shouldSend = channelId.contains("private") || channelId.contains("groups");
+		else
+		if(pkg.equals("com.facebook.orca"))
+			shouldSend = channelId.contains("messaging");
+		else
+		if(pkg.equals("com.skype.raider"))
+			shouldSend = channelId.contains("messages");
+		else
+		if(pkg.equals("com.viber.voip"))
+			shouldSend = channelId.contains("messages") || channelId.equals("smart");
+		else
+		if(pkg.equals("com.imo.android.imoim"))
+			shouldSend = channelId.equals("notification1") || channelId.equals("group1");
+		else
+		if(pkg.equals("org.thoughtcrime.securesms"))
+			shouldSend = channelId.equals("messages_1");
+		else
+		if(pkg.equals("com.zing.zalo"))
+			shouldSend = channelId.contains("chat") || channelId.contains("group");
+		else
+		if(pkg.equals("jp.naver.line.android"))
+			shouldSend = channelId.contains("NewMessages");
+		else
+		if(pkg.equals("kik.android"))
+			shouldSend = channelId.equals("default_messages_channel_id_v2");
+		return shouldSend;
 	}
 
 	public boolean removeNotification(Class c, StatusBarNotification sbn)
