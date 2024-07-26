@@ -26,18 +26,16 @@ public class AppActivity extends Activity
 	private static final int CODE_NOTIFICATION_ACCESS = 8421;
 	private static final int CODE_COMMON = 2;
 	String[] permissions = new String[]{
-		Manifest.permission.VIBRATE,
 		Manifest.permission.READ_CONTACTS,
 		Manifest.permission.WRITE_EXTERNAL_STORAGE
 	};
 	String[] permissionsReason = new String[]{
-		"\"Vibrate\" permission is required for Haptics",
 		"\"Read Contacts\" permission is required for messaging a contact",
-		"\"Write External Storage\" permission is required for Bot"
+		"\"Write External Storage\" permission is required for storing app files"
 	};
+	ArrayList<String> pendingPermissions;
 
 	Bot bot;
-	File botDataDir;
 	Random random;
 
 	int screenWidth;
@@ -63,6 +61,26 @@ public class AppActivity extends Activity
 	int columnsTotal;
 	int rowsTotal;
 	int baseButtonsTotal;
+
+	File dataDir;
+	File CHDataDir;
+	File autoSendTosFile;
+	File autoSendTosUFile;
+	File autoSendMsgsFile;
+	File autoSendMsgsUFile;
+	File chatHeadSizeDivFile;
+	File sentsFile;
+	File ignoredsFile;
+	File chatHeadSensitivityFile;
+	File hapticsEnabledFile;
+	File keepNotificationsFile;
+	File NLDataDir;
+	File tgtAppsPkgFile;
+	File ignoreTitlesFile;
+	File ignoreTextsFile;
+	File botDataDir;
+	File SpamDir;
+	File absDir;
 
 	ArrayList<String> tgtAppsPkg;
 	ArrayList<String> ignoreTitles;
@@ -94,129 +112,196 @@ public class AppActivity extends Activity
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 
+		random = new Random();
+
+		MATCH_PARENT = ViewGroup.LayoutParams.MATCH_PARENT;
+		WRAP_CONTENT = ViewGroup.LayoutParams.WRAP_CONTENT;
+
+		screenWidth = getResources().getDisplayMetrics().widthPixels;
+		screenHeight = getResources().getDisplayMetrics().heightPixels;
+		screenDensity = getResources().getDisplayMetrics().density;
+
+		final float xdpi = getResources().getDisplayMetrics().xdpi;
+		final float ydpi = getResources().getDisplayMetrics().ydpi;
+
+		int paddingLeft = screenWidth/100;
+		int paddingTop = screenHeight/100;
+		int paddingRight = screenWidth/100;
+		int paddingBottom = screenHeight/100;
+
+		screenWidth -= paddingLeft + paddingRight;
+		screenHeight -= paddingTop + paddingBottom;
+
+		dataDir = (Build.VERSION.SDK_INT<=29)? (new File(Environment.getExternalStorageDirectory(), "SmartChatIO")) : getExternalFilesDir(null);
+		CHDataDir = new File(dataDir, "ChatHeadData");
+		autoSendTosFile = new File(CHDataDir, "autoSendTos");
+		autoSendTosUFile = new File(CHDataDir, "autoSendTosU");
+		autoSendMsgsFile = new File(CHDataDir, "autoSendMsgs");
+		autoSendMsgsUFile = new File(CHDataDir, "autoSendMsgsU");
+		chatHeadSizeDivFile = new File(CHDataDir, "chatHeadSizeDiv");
+		sentsFile = new File(CHDataDir, "sents");
+		ignoredsFile = new File(CHDataDir, "ignoreds");
+		chatHeadSensitivityFile = new File(CHDataDir, "chatHeadSensitivity");
+		hapticsEnabledFile = new File(CHDataDir, "hapticsEnabled");
+		keepNotificationsFile = new File(CHDataDir, "keepNotifications");
+		NLDataDir = new File(dataDir, "NotificationListenerData");
+		tgtAppsPkgFile = new File(NLDataDir, "tgtAppsPkg");
+		ignoreTitlesFile = new File(NLDataDir, "ignoreTitles");
+		ignoreTextsFile = new File(NLDataDir, "ignoreTexts");
+		botDataDir = new File(dataDir, "BotData");
+		SpamDir = new File(dataDir, "Spam");
+		absDir = new File(botDataDir, "abstracts");
+
 		//requesting permission grant
 		try
 		{
-			if(!Settings.canDrawOverlays(this))
-			{
-				Intent intentPermissionDrawOverOtherApps = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
-				startActivityForResult(intentPermissionDrawOverOtherApps, CODE_DRAW_OVER_OTHER_APP_PERMISSION);
-			}
-
-			ArrayList<String> pendingPermissions = new ArrayList<String>();
+			pendingPermissions = new ArrayList<String>();
 			for(String permission : permissions)
 				if(PermissionChecker.checkSelfPermission(this, permission) !=  PermissionChecker.PERMISSION_GRANTED)
 					pendingPermissions.add(permission);
+
+			if(!NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName()))
+			{
+				int chatHeadSize = (int)(xdpi / 2.3f);
+				LinearLayout initDialogLayout = new LinearLayout(getApplicationContext());
+				initDialogLayout.setOrientation(LinearLayout.HORIZONTAL);
+				final ImageView refreshView = new ImageView(getApplicationContext());
+				refreshView.setImageResource(R.drawable.ic_refresh);
+				refreshView.setScaleX(-1);
+				LinearLayout.LayoutParams refreshViewParams = new LinearLayout.LayoutParams(chatHeadSize/2+chatHeadSize/2+chatHeadSize/8, chatHeadSize/2);
+				refreshViewParams.setMargins(chatHeadSize/2, 0, chatHeadSize/8, 0);
+				initDialogLayout.addView(refreshView, refreshViewParams);
+				final CountDownTimer refreshLoadingTimer = new CountDownTimer(360*2, 1){
+
+					@Override
+					public void onTick(long p1)
+					{
+						refreshView.setRotation(360-p1/2);
+					}
+
+					@Override
+					public void onFinish()
+					{
+						refreshView.setRotation(0);
+						start();
+					}
+				};
+				final TextView message = new TextView(getApplicationContext());
+				message.setText("This will take some time");
+				message.setTextColor(Color.LTGRAY);
+				message.setGravity(Gravity.CENTER_VERTICAL);
+				initDialogLayout.addView(message, new LinearLayout.LayoutParams(MATCH_PARENT, chatHeadSize/2));
+				final AlertDialog initDialog = new AlertDialog.Builder(AppActivity.this).setCancelable(false).setTitle("Initializing").setView(initDialogLayout).create();
+				initDialog.getWindow().setBackgroundDrawableResource(R.drawable.dialog_background);
+				initDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+	                @Override
+	                public void onShow(DialogInterface arg0) {
+	                    int titleId = getResources().getIdentifier("alertTitle", "id", "android");
+		                TextView title = (TextView) initDialog.findViewById(titleId);
+						title.setTextColor(Color.parseColor("#01def9"));
+	                }
+				});
+				new Thread(){
+		            public void run(){
+		            	try
+						{
+							runOnUiThread(new Runnable() {
+							    @Override
+							    public void run() {
+							        initDialog.show();
+							        refreshLoadingTimer.start();
+							    }
+							});
+							String[] filesPath = readFromAsset("lateFilesPath", "SEPARATOR_NEW_LINE");
+							String[][] filesData = new String[filesPath.length][];
+							for(int f = 0;f < filesPath.length;f++)
+							{
+								String filePath = filesPath[f].replace("/", File.separator);
+								filesData[f] = readFromAsset(filePath.substring(filePath.lastIndexOf(File.separator)+1, filePath.length()), "SEPARATOR_NEW_LINE");
+							}
+							addFilesFromData(filesPath, filesData, dataDir);
+
+							//Training trainModule = new Training(SpamDir.getAbsolutePath());
+							//trainModule.preProcessFiles(new String[]{"data"});
+						}
+						catch(Exception e)
+						{
+							//Toast.makeText(this, "failed to add files, Exception copied to clipboard", Toast.LENGTH_LONG).show();
+						}finally{
+							runOnUiThread(new Runnable() {
+							    @Override
+							    public void run() {
+							    	refreshLoadingTimer.cancel();
+							        initDialog.dismiss();
+							    }
+							});
+						}
+		            }
+		        }.start();
+				Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
+			}
 
 			if(pendingPermissions.size() > 0)
 			{
 				requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
 			}
 			else
-			if(!NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName()))
+			if(!Settings.canDrawOverlays(this))
 			{
-				Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
-				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
+				Intent intentPermissionDrawOverOtherApps = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
+				startActivityForResult(intentPermissionDrawOverOtherApps, CODE_DRAW_OVER_OTHER_APP_PERMISSION);
+			}
+
+			if(pendingPermissions.size()==0 
+				&& NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName())
+				&& Settings.canDrawOverlays(this))
+			{
+				tgtAppsPkg = new ArrayList<String>();
+				for(String tgtAppPkg : readFromFile(tgtAppsPkgFile, "SEPARATOR_NEW_LINE"))
+					tgtAppsPkg.add(tgtAppPkg);
+
+				ignoreTitles = new ArrayList<String>();
+				for(String ignoreTitle : readFromFile(ignoreTitlesFile, "SEPARATOR_NEW_LINE"))
+					ignoreTitles.add(ignoreTitle);
+
+				ignoreTexts = new ArrayList<String>();
+				for(String ignoreText : readFromFile(ignoreTextsFile, "SEPARATOR_NEW_LINE"))
+					ignoreTexts.add(ignoreText);
+
+				autoSendTos = new ArrayList<String>();
+				for(String autoSendTo : readFromFile(autoSendTosFile, "SEPARATOR_NEW_LINE"))
+					autoSendTos.add(autoSendTo);
+
+				autoSendTosU = new ArrayList<String>();
+				for(String autoSendToU : readFromFile(autoSendTosUFile, "SEPARATOR_NEW_LINE"))
+					autoSendTosU.add(autoSendToU);
+
+				autoSendMsgs = new ArrayList<String>();
+				for(String autoSendMsg : readFromFile(autoSendMsgsFile, "SEPARATOR_NEW_LINE"))
+					autoSendMsgs.add(autoSendMsg);
+
+				autoSendMsgsU = new ArrayList<String>();
+				for(String autoSendMsgU : readFromFile(autoSendMsgsUFile, "SEPARATOR_NEW_LINE"))
+					autoSendMsgsU.add(autoSendMsgU);
+
+				sents = new ArrayList<String>();
+				for(String sent : readFromFile(sentsFile, "SEPARATOR_NEW_LINE"))
+					sents.add(sent);
+
+				ignoreds = new ArrayList<String>();
+				for(String ignored : readFromFile(ignoredsFile, "SEPARATOR_NEW_LINE"))
+					ignoreds.add(ignored);
+
+				bot = new Bot(botDataDir);
+				refreshAbstracts();
 			}
 
 		}catch(Exception e)
 		{}//Toast.makeText(this, e.toString()+"\n\n"+e.getStackTrace()[0].toString(), Toast.LENGTH_LONG).show();}
-
-		final File dataDir = (Build.VERSION.SDK_INT<=29)? (new File(Environment.getExternalStorageDirectory(), "SmartChatIO")) : getExternalFilesDir(null);
-		final File CHDataDir = new File(dataDir, "ChatHeadData");
-		final File autoSendTosFile = new File(CHDataDir, "autoSendTos");
-		final File autoSendTosUFile = new File(CHDataDir, "autoSendTosU");
-		final File autoSendMsgsFile = new File(CHDataDir, "autoSendMsgs");
-		final File autoSendMsgsUFile = new File(CHDataDir, "autoSendMsgsU");
-		final File chatHeadSizeDivFile = new File(CHDataDir, "chatHeadSizeDiv");
-		final File sentsFile = new File(CHDataDir, "sents");
-		final File ignoredsFile = new File(CHDataDir, "ignoreds");
-		final File chatHeadSensitivityFile = new File(CHDataDir, "chatHeadSensitivity");
-		final File hapticsEnabledFile = new File(CHDataDir, "hapticsEnabled");
-		final File keepNotificationsFile = new File(CHDataDir, "keepNotifications");
-		final File NLDataDir = new File(dataDir, "NotificationListenerData");
-		final File tgtAppsPkgFile = new File(NLDataDir, "tgtAppsPkg");
-		final File ignoreTitlesFile = new File(NLDataDir, "ignoreTitles");
-		final File ignoreTextsFile = new File(NLDataDir, "ignoreTexts");
-		botDataDir = new File(dataDir, "BotData");
-		final File absDir = new File(botDataDir, "abstracts");
-
+		
 		try
 		{
-			String[] filesPath = readFromAsset("filesPath", "SEPARATOR_NEW_LINE");
-			String[][] filesData = new String[filesPath.length][];
-			for(int f = 0;f < filesPath.length;f++)
-			{
-				String filePath = filesPath[f].replace("/", File.separator);
-				filesData[f] = readFromAsset(filePath.substring(filePath.lastIndexOf(File.separator)+1, filePath.length()), "SEPARATOR_NEW_LINE");
-			}
-			addFilesFromData(filesPath, filesData, dataDir);
-		}
-		catch(Exception e)
-		{
-			//Toast.makeText(this, "failed to add files, Exception copied to clipboard", Toast.LENGTH_LONG).show();
-		}
-
-		try
-		{
-			bot = new Bot(botDataDir);
-			refreshAbstracts();
-			random = new Random();
-
-			tgtAppsPkg = new ArrayList<String>();
-			for(String tgtAppPkg : readFromFile(tgtAppsPkgFile, "SEPARATOR_NEW_LINE"))
-				tgtAppsPkg.add(tgtAppPkg);
-
-			ignoreTitles = new ArrayList<String>();
-			for(String ignoreTitle : readFromFile(ignoreTitlesFile, "SEPARATOR_NEW_LINE"))
-				ignoreTitles.add(ignoreTitle);
-
-			ignoreTexts = new ArrayList<String>();
-			for(String ignoreText : readFromFile(ignoreTextsFile, "SEPARATOR_NEW_LINE"))
-				ignoreTexts.add(ignoreText);
-
-			autoSendTos = new ArrayList<String>();
-			for(String autoSendTo : readFromFile(autoSendTosFile, "SEPARATOR_NEW_LINE"))
-				autoSendTos.add(autoSendTo);
-
-			autoSendTosU = new ArrayList<String>();
-			for(String autoSendToU : readFromFile(autoSendTosUFile, "SEPARATOR_NEW_LINE"))
-				autoSendTosU.add(autoSendToU);
-
-			autoSendMsgs = new ArrayList<String>();
-			for(String autoSendMsg : readFromFile(autoSendMsgsFile, "SEPARATOR_NEW_LINE"))
-				autoSendMsgs.add(autoSendMsg);
-
-			autoSendMsgsU = new ArrayList<String>();
-			for(String autoSendMsgU : readFromFile(autoSendMsgsUFile, "SEPARATOR_NEW_LINE"))
-				autoSendMsgsU.add(autoSendMsgU);
-
-			sents = new ArrayList<String>();
-			for(String sent : readFromFile(sentsFile, "SEPARATOR_NEW_LINE"))
-				sents.add(sent);
-
-			ignoreds = new ArrayList<String>();
-			for(String ignored : readFromFile(ignoredsFile, "SEPARATOR_NEW_LINE"))
-				ignoreds.add(ignored);
-
-			MATCH_PARENT = ViewGroup.LayoutParams.MATCH_PARENT;
-			WRAP_CONTENT = ViewGroup.LayoutParams.WRAP_CONTENT;
-
-			screenWidth = getResources().getDisplayMetrics().widthPixels;
-			screenHeight = getResources().getDisplayMetrics().heightPixels;
-			screenDensity = getResources().getDisplayMetrics().density;
-
-			final float xdpi = getResources().getDisplayMetrics().xdpi;
-			final float ydpi = getResources().getDisplayMetrics().ydpi;
-
-			int paddingLeft = screenWidth/100;
-			int paddingTop = screenHeight/100;
-			int paddingRight = screenWidth/100;
-			int paddingBottom = screenHeight/100;
-
-			screenWidth -= paddingLeft + paddingRight;
-			screenHeight -= paddingTop + paddingBottom;
-
 			baseLayout = new RelativeLayout(this);
 
 			try
@@ -228,6 +313,8 @@ public class AppActivity extends Activity
 			}catch (IOException e)
 			{}catch (NumberFormatException e)
 			{}
+
+			final int chatHeadSize = (int)(xdpi / chatHeadSizeDiv);
 
 			baseButtonsTotal = 7;
 
@@ -363,7 +450,7 @@ public class AppActivity extends Activity
 										final ListView appList = new ListView(getApplicationContext());
 										if(appsInfo == null)
 										{
-											appsInfo = getPackageManager().getInstalledApplications(PackageManager.GET_META_DATA);
+											appsInfo = getPackageManager().getInstalledApplications(0);
 											installedAppsName = new ArrayList<String>();
 											appsName = new ArrayList<String>();
 											installedAppsPkg = new ArrayList<String>();
@@ -379,9 +466,9 @@ public class AppActivity extends Activity
 
 												appsName.add(name);
 												appsPkg.add(pkgName);
-												appsIcon.add(new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(drawableToBitmap(icon), screenWidth/5, screenWidth/5, false)));
+												appsIcon.add(icon);
 
-												if((appInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0)
+												if((appInfo.flags & (ApplicationInfo.FLAG_UPDATED_SYSTEM_APP | ApplicationInfo.FLAG_SYSTEM)) == 0)
 												{
 													installedAppsName.add(name);
 													installedAppsPkg.add(pkgName);
@@ -441,12 +528,14 @@ public class AppActivity extends Activity
 
 												final ImageView icon = new ImageView(getApplicationContext());
 												icon.setImageDrawable(showSystemApps? appsIcon.get(i) : installedAppsIcon.get(i));
-												final LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+												final LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams((int)(xdpi/2.3f), (int)(xdpi/2.3f));
 												iconParams.gravity = Gravity.CENTER;
 
 												final TextView appName = new TextView(getApplicationContext());
-												appName.setTextColor(Color.LTGRAY);
-												appName.setText(showSystemApps? appsName.get(i) : installedAppsName.get(i)); 
+												appName.setTextAppearance(android.R.style.TextAppearance_Large);
+												appName.setTextColor(Color.WHITE);
+												appName.setTypeface(Typeface.DEFAULT_BOLD);
+												appName.setText(" "+(showSystemApps? appsName.get(i) : installedAppsName.get(i))); 
 												final LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
 												nameParams.gravity = Gravity.CENTER;
 
@@ -2275,12 +2364,11 @@ public class AppActivity extends Activity
 												}
 											}
 										});
-                                    int closeButtonSize = (int)(xdpi/chatHeadSizeDiv);
-									closeButtonParams = new RelativeLayout.LayoutParams(closeButtonSize, closeButtonSize);
-									closeButtonParams.setMargins(screenWidth - closeButtonSize,
+									closeButtonParams = new RelativeLayout.LayoutParams(chatHeadSize, chatHeadSize);
+									closeButtonParams.setMargins(screenWidth - chatHeadSize,
 																 0,
 																 0,
-																 screenHeight - closeButtonSize);
+																 screenHeight - chatHeadSize);
 									/////////////////////////////////////////////
 
 									reverse = false;
@@ -2430,20 +2518,24 @@ public class AppActivity extends Activity
 	public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults)
 	{
 		// TODO: Implement this method
-		ArrayList<String> pendingPermissions = new ArrayList<String>();
+		pendingPermissions = new ArrayList<String>();
 		for(int p = 0;p < permissions.length;p++)
 			if(grantResults[p] !=  PermissionChecker.PERMISSION_GRANTED)
 			{
 				pendingPermissions.add(permissions[p]);
 				Toast.makeText(getApplicationContext(), permissionsReason[p], Toast.LENGTH_LONG).show();
 			}
+		if(pendingPermissions.size()==0 
+			&& NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName())
+			&& Settings.canDrawOverlays(this))
+			copyAssets();
 		if(pendingPermissions.size() > 0)
 			requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
 		else
-		if(!NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName()))
+		if(!Settings.canDrawOverlays(this))
 		{
-			Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
-			startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
+			Intent intentPermissionDrawOverOtherApps = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
+			startActivityForResult(intentPermissionDrawOverOtherApps, CODE_DRAW_OVER_OTHER_APP_PERMISSION);
 		}
 
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -2452,24 +2544,100 @@ public class AppActivity extends Activity
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
 	{
+		if(pendingPermissions.size()==0 
+			&& NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName())
+			&& Settings.canDrawOverlays(this))
+			copyAssets();
 		// TODO: Implement this method
 		if(requestCode == CODE_DRAW_OVER_OTHER_APP_PERMISSION)
 		{
 			if(!Settings.canDrawOverlays(this))
 			{
-				Toast.makeText(this, "\"Draw over other apps\" permission is required for ChatHead", Toast.LENGTH_SHORT).show();
+				Toast.makeText(this, "\"Draw over other apps\" permission is required to display Chat Head", Toast.LENGTH_LONG).show();
 				Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
 				startActivityForResult(intent, CODE_DRAW_OVER_OTHER_APP_PERMISSION);
-
-				if(!NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName()))
-				{
-					Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
-					startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
-				}
+			}
+		}else
+		if(requestCode == CODE_NOTIFICATION_ACCESS)
+		{
+			if(!NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName()))
+			{
+				Toast.makeText(this, "\"Notification access\" is required for chat interactions", Toast.LENGTH_LONG).show();
+				Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
 			}
 		}
 		else
 			super.onActivityResult(requestCode, resultCode, data);
+	}
+
+	private void copyAssets()
+	{
+		try{
+			String[] filesPath = readFromAsset("filesPath", "SEPARATOR_NEW_LINE");
+			String[][] filesData = new String[filesPath.length][];
+			for(int f = 0;f < filesPath.length;f++)
+			{
+				String filePath = filesPath[f].replace("/", File.separator);
+				filesData[f] = readFromAsset(filePath.substring(filePath.lastIndexOf(File.separator)+1, filePath.length()), "SEPARATOR_NEW_LINE");
+			}
+			addFilesFromData(filesPath, filesData, dataDir);
+
+			String[] fileNames = {"spamdb", "hamdb", "arcdb"};
+			for(String fileName : fileNames)
+			{
+						AssetManager assets = getResources().getAssets();
+						InputStream in = assets.open(fileName);
+						File file = new File(SpamDir, fileName);
+						if(file.exists())file.delete();file.createNewFile();
+				        OutputStream out = new FileOutputStream(file);
+				        int nextByte;
+						while ((nextByte = in.read()) != -1) {
+						    out.write(nextByte);
+						}
+
+						out.flush();
+			}
+
+			tgtAppsPkg = new ArrayList<String>();
+			for(String tgtAppPkg : readFromFile(tgtAppsPkgFile, "SEPARATOR_NEW_LINE"))
+				tgtAppsPkg.add(tgtAppPkg);
+
+			ignoreTitles = new ArrayList<String>();
+			for(String ignoreTitle : readFromFile(ignoreTitlesFile, "SEPARATOR_NEW_LINE"))
+				ignoreTitles.add(ignoreTitle);
+
+			ignoreTexts = new ArrayList<String>();
+			for(String ignoreText : readFromFile(ignoreTextsFile, "SEPARATOR_NEW_LINE"))
+				ignoreTexts.add(ignoreText);
+
+			autoSendTos = new ArrayList<String>();
+			for(String autoSendTo : readFromFile(autoSendTosFile, "SEPARATOR_NEW_LINE"))
+				autoSendTos.add(autoSendTo);
+
+			autoSendTosU = new ArrayList<String>();
+			for(String autoSendToU : readFromFile(autoSendTosUFile, "SEPARATOR_NEW_LINE"))
+				autoSendTosU.add(autoSendToU);
+
+			autoSendMsgs = new ArrayList<String>();
+			for(String autoSendMsg : readFromFile(autoSendMsgsFile, "SEPARATOR_NEW_LINE"))
+				autoSendMsgs.add(autoSendMsg);
+
+			autoSendMsgsU = new ArrayList<String>();
+			for(String autoSendMsgU : readFromFile(autoSendMsgsUFile, "SEPARATOR_NEW_LINE"))
+				autoSendMsgsU.add(autoSendMsgU);
+
+			sents = new ArrayList<String>();
+			for(String sent : readFromFile(sentsFile, "SEPARATOR_NEW_LINE"))
+				sents.add(sent);
+
+			ignoreds = new ArrayList<String>();
+			for(String ignored : readFromFile(ignoredsFile, "SEPARATOR_NEW_LINE"))
+				ignoreds.add(ignored);
+
+			bot = new Bot(botDataDir);
+			refreshAbstracts();
+		}catch(IOException e){}
 	}
 
 	@Override

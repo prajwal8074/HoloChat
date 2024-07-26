@@ -77,7 +77,7 @@ public Training(String path)
 public void preProcessFiles(String[] path){
 
 	
-for (int a=1; a<path.length;a++)
+for (int a=0; a<path.length;a++)
 {	
 folder = new File(dataDirPath+"/"+path[a]);
 String filename[] = folder.list();

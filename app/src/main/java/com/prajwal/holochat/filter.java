@@ -36,8 +36,6 @@ public class filter{
 /**
 * Class used for training the filter
 */
-static Training trainModule;
-
 static FileReader testfr;
 static File trainf;
 
@@ -255,18 +253,6 @@ while (scan2.hasNext())
 public static void init() throws FileNotFoundException {
 
 /**
- * Training
- */
-
-/*if (args[0].compareTo("-tr") ==0){
-
-trainModule = new Training(dataDirPath);
-
-trainModule.preProcessFiles(args);
-return;
-}*/
-
-/**
  * Read the training data from these files
  * - hamdb
  * - spamdb
@@ -341,33 +327,6 @@ return;
 }
 
 double errors =0;
-
-
-/**
- * Results:
- */
-
-/*for (int a=0; a<args.length;a++)
-{
-File fr = new File(dataDirPath+"/"+args[a]);
-{
-	FileReader reader =null;
-	reader = new FileReader(fr);
-	//try{System.out.println(new BufferedReader(reader).readLine());}catch(IOException e){}
-	double result = classification(reader);
-	if (result ==0) System.out.print("ham\n"); else System.out.print("spam\n");
-	
-	
-}
-
-//System.out.println("Result:"+errors+"/"+fr.list().length+" = "+errors/(double)fr.list().length);
-}*/
-
-
-
-
-
-
 
 
 }

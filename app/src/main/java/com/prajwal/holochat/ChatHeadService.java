@@ -26,12 +26,14 @@ public class ChatHeadService extends Service
 {
     File dataDir;
     File botDataDir;
+    File SpamDir;
     File CHDataDir;
     File NLDataDir;
     File ignoreTitlesFile;
     File ignoreTextsFile;
     File chatsPerAdFile;
 	Bot bot;
+	filter spamFilter;
 	Icon botIcon;
 	Random random;
 	String appPkg;
@@ -250,12 +252,15 @@ public class ChatHeadService extends Service
 					random = new Random();
 					dataDir = (Build.VERSION.SDK_INT<=29)? (new File(Environment.getExternalStorageDirectory(), "SmartChatIO")) : getExternalFilesDir(null);
 					botDataDir = new File(dataDir, "BotData");
+					SpamDir = new File(dataDir, "Spam");
 					CHDataDir = new File(dataDir, "ChatHeadData");
 					NLDataDir = new File(dataDir, "NotificationListenerData");
 					ignoreTitlesFile = new File(NLDataDir, "ignoreTitles");
 					ignoreTextsFile = new File(NLDataDir, "ignoreTexts");
 					chatsPerAdFile = new File(CHDataDir, "chatsPerAd");
 					bot = new Bot(botDataDir);
+					spamFilter = new filter(SpamDir.getAbsolutePath());
+					try{spamFilter.init();}catch(FileNotFoundException e){}
 					botIcon = Icon.createWithResource(getApplicationContext(), R.drawable.ic_logo_small);
 					appPkg = getPackageName();
 
@@ -349,39 +354,34 @@ public class ChatHeadService extends Service
 											{
 												final int chatViewIndex = chatInFocus == CHAT_ALL? getChatViewIndex(chatIndex) : 0;
 
-												/*try{
-													URL url = new URL("https://www.nyckel.com/v1/functions/6yal1h89ep78jyzt/invoke");
-											        HttpURLConnection urlConn =(HttpURLConnection)url.openConnection();
-											        urlConn.setRequestMethod("POST");
-											        urlConn.setRequestProperty("Content-Type", "application/json");
-											        urlConn.setDoOutput(true);
-											        urlConn.connect();
+												if(replies.get(chatIndex).equals((PENDING)))
+												{
+													try{
+														File fr = new File(SpamDir, "tmp");
+														writeToFile(fr, new String[]{messages.get(chatIndex)});
+														FileReader reader = new FileReader(fr);
+														double result = spamFilter.classification(reader);
 
-											        writeToStream(urlConn.getOutputStream(), new String[]{"{\"data\":\""+messages.get(chatIndex)+"\",\"capture\":\"false\"}"}, "SEPARATOR_NEW_LINE");
+												        if(result==1)
+												        	if(!isInterrupted())
+												        	{
+												        		chatRemoves.set(chatIndex, true);
+												        		chatRemovesCount++;
+																handler.post(new Runnable(){
 
-											        InputStream is = urlConn.getInputStream();
-											        
-											        if(readFromStream(is).contains("\"spam\""))
-											        	if(!isInterrupted())
-											        	{
-											        		chatRemoves.set(chatIndex, true);
-											        		chatRemovesCount++;
-															handler.post(new Runnable(){
-
-																@Override
-																public void run()
-																{
-																	onChatDataChange();
-																	refreshNotification();
-																}
-															});
-											        	}
-											    }catch (MalformedURLException e){}catch (IOException e){
-											    }finally*/
-											    {
-													if(!chatRemoves.get(chatIndex))
-													{
-														if(replies.get(chatIndex).equals((PENDING)))
+																	@Override
+																	public void run()
+																	{
+																		onChatDataChange();
+																		refreshNotification();
+																	}
+																});
+												        	}
+												        fr.delete();
+												    }catch (IOException e){
+												    }finally
+												    {
+														if(!chatRemoves.get(chatIndex))
 														{
 															replies.set(chatIndex, LOADING);
 															chatLoading = chatIndex;
@@ -504,8 +504,17 @@ public class ChatHeadService extends Service
 																	chatLoading = -1;
 																	chatLoadingViewIndex = -1;
 																}
-															}
-														//}
+														}else{
+															handler.post(new Runnable(){
+																@Override
+																public void run()
+																{
+																	// TODO: Implement this method
+																	replies.set(chatIndex, "");
+																	replyViews.get(chatViewIndex).setText("");
+																}
+															});
+														}
 													}
 												}
 											}
@@ -567,12 +576,12 @@ public class ChatHeadService extends Service
 						if(chatsPerAdLines.length > 0)
 							chatsPerAd = Integer.parseInt(chatsPerAdLines[0]);
 						else
-							chatsPerAdFile.delete();chatsPerAdFile.createNewFile();writeToFile(chatsPerAdFile, new String[]{String.valueOf(chatsPerAd)}, "SEPARATOR_NEW_LINE");
+							chatsPerAdFile.delete();chatsPerAdFile.createNewFile();writeToFile(chatsPerAdFile, new String[]{String.valueOf(chatsPerAd)});
 					}catch (IOException e)
 					{}catch (NumberFormatException e)
 					{}
 					chatHeadWidth = (int)(xdpi / chatHeadSizeDiv);
-					chatHeadHeight = (int)(ydpi / chatHeadSizeDiv);
+					chatHeadHeight = chatHeadWidth;
 
 					chatListWidth = screenWidth - chatHeadWidth * 2;
 					chatListHeight = screenHeight - chatHeadHeight * 2;
@@ -782,7 +791,7 @@ public class ChatHeadService extends Service
 					chatList.setBackgroundResource(R.drawable.chat_holo);
 					chatList.setItemsCanFocus(true);
 					chatList.setDividerHeight(0);
-					chatList.setPadding((int)(xdpi / 50f), (int)(ydpi / 50f), (int)(xdpi / 50f), (int)(ydpi / 50f));
+					chatList.setPadding(10, 10, 10, 10);
 					final RelativeLayout.LayoutParams chatListParams = new RelativeLayout.LayoutParams(screenWidth, WRAP_CONTENT);
 					chatListView.addView(chatList, chatListParams);
 					firstVisibleChat = 0;
@@ -1844,10 +1853,12 @@ public class ChatHeadService extends Service
 																																					                });
 																																LinearLayout emojiDialogLayout = new LinearLayout(getApplicationContext());
 																																emojiDialogLayout.setOrientation(LinearLayout.VERTICAL);
+																																emojiDialogLayout.setPadding(15, 15, 15, 15);
 																																builder.setView(emojiDialogLayout);
 																																builder.setCancelable(true);
 																																AlertDialog dialog = builder.create();
 																																dialog.getWindow().setType(typeOverlay);
+																																dialog.getWindow().setBackgroundDrawableResource(R.drawable.chat_holo);
 																																ScrollView scrollView = new ScrollView(getApplicationContext());
 																																LinearLayout.LayoutParams scrollViewParams = new LinearLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT);
 																																LinearLayout emojisLayout = new LinearLayout(getApplicationContext());
@@ -1855,6 +1866,7 @@ public class ChatHeadService extends Service
 																																scrollView.addView(emojisLayout);
 																																TabLayout tabLayout = new TabLayout(new ContextThemeWrapper(getApplicationContext(), R.style.DialogTheme));
 																																tabLayout.setTabMode(TabLayout.MODE_SCROLLABLE);
+																																tabLayout.setTabTextColors(Color.parseColor("#009bbd"), Color.parseColor("#01def9"));
 																																LinearLayout.LayoutParams tabLayoutParams = new LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT);
 																																for(int e=0;e<emojis.length;e++)
 																																	tabLayout.addTab(tabLayout.newTab().setText(emojis[e][0]));  
@@ -1865,12 +1877,17 @@ public class ChatHeadService extends Service
 																														            	haptic(5, 128);
 																																		scrollView.scrollTo(0, 0);
 																																		emojisLayout.removeAllViews();
+																																		LinearLayout ttabLayout = (LinearLayout)((ViewGroup) tabLayout.getChildAt(0)).getChildAt(tab.getPosition());
+																															            TextView tabTextView = (TextView) ttabLayout.getChildAt(1);
+																															            tabTextView.setTypeface(tabTextView.getTypeface(), Typeface.BOLD);
 																														                int e = tab.getPosition();
 																																		String[] emojiss = emojis[e][1].split("  ");
 																																		for(int r=0;r<emojiss.length;r++)
 																																		{
 																																				Button button = new Button(getApplicationContext());
+																																				button.setBackgroundColor(Color.TRANSPARENT);
 																																				button.setText(emojiss[r]);
+																																				button.setTextColor(Color.WHITE);
 																																				button.setOnClickListener(new View.OnClickListener()
 																																				{
 																																					@Override
@@ -1881,12 +1898,21 @@ public class ChatHeadService extends Service
 																																					}
 																																				});
 																																			emojisLayout.addView(button, new LinearLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT));
+																																			if(r<emojiss.length-1)
+																																			{
+																																				View viewDivider = new View(getApplicationContext());
+																																			    viewDivider.setLayoutParams(new LinearLayout.LayoutParams(MATCH_PARENT, 5));
+																																			    viewDivider.setBackgroundColor(Color.parseColor("#008392"));
+																																			    emojisLayout.addView(viewDivider);
+																																			}
 																																		}
 																														            }  
 																														  
 																														            @Override  
 																														            public void onTabUnselected(TabLayout.Tab tab) {  
-																														  
+																														  				LinearLayout ttabLayout = (LinearLayout)((ViewGroup) tabLayout.getChildAt(0)).getChildAt(tab.getPosition());
+																															            TextView tabTextView = (TextView) ttabLayout.getChildAt(1);
+																															            tabTextView.setTypeface(null, Typeface.NORMAL);
 																														            }  
 																														  
 																														            @Override  
@@ -1898,18 +1924,27 @@ public class ChatHeadService extends Service
 																																String[] emojiss = emojis[e][1].split("  ");
 																																for(int r=0;r<emojiss.length;r++)
 																																{
-																																		Button button = new Button(getApplicationContext());
-																																		button.setText(emojiss[r]);
-																																		button.setOnClickListener(new View.OnClickListener()
+																																	Button button = new Button(getApplicationContext());
+																																	button.setBackgroundColor(Color.TRANSPARENT);
+																																	button.setText(emojiss[r]);
+																																	button.setTextColor(Color.WHITE);
+																																	button.setOnClickListener(new View.OnClickListener()
+																																	{
+																																		@Override
+																																		public void onClick(View view)
 																																		{
-																																			@Override
-																																			public void onClick(View view)
-																																			{
-																																				replyView.setText(replyView.getText().toString()+button.getText().toString());
-																																				dialog.dismiss();
-																																			}
-																																		});
+																																			replyView.setText(replyView.getText().toString()+button.getText().toString());
+																																			dialog.dismiss();
+																																		}
+																																	});
 																																	emojisLayout.addView(button, new LinearLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT));
+																																	if(r<emojiss.length-1)
+																																	{
+																																		View viewDivider = new View(getApplicationContext());
+																																	    viewDivider.setLayoutParams(new LinearLayout.LayoutParams(MATCH_PARENT, 5));
+																																	    viewDivider.setBackgroundColor(Color.parseColor("#008392"));
+																																	    emojisLayout.addView(viewDivider);
+																																	}
 																																}
 																																emojiDialogLayout.addView(tabLayout, tabLayoutParams);
 																																emojiDialogLayout.addView(scrollView, scrollViewParams);
@@ -2952,7 +2987,25 @@ public class ChatHeadService extends Service
 														mBlackBackView.setVisibility(View.GONE);
 														mRemoveView.setVisibility(View.GONE);
 
-														stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+														/*new Thread(){
+												            public void run(){
+												            	try
+																{
+																	Training trainModule = new Training(SpamDir.getAbsolutePath());
+																	trainModule.preProcessFiles(new String[]{"data"});
+																}
+																catch(Exception e)
+																{}finally{
+																	runOnUiThread(new Runnable() {
+																	    @Override
+																	    public void run() {
+																	        stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+																	    }
+																	});
+																}
+												            }
+												        }.start();*/
+												        stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
 													}
 												}.start();
 											}
@@ -3471,10 +3524,10 @@ public class ChatHeadService extends Service
 										autoSendTos.add(data[SENDER][i]);
 										autoSendTosFile.delete();
 										autoSendTosFile.createNewFile();
-										writeToFile(autoSendTosFile, autoSendTos.toArray(new String[]{}), "SEPARATOR_NEW_LINE");
+										writeToFile(autoSendTosFile, autoSendTos.toArray(new String[]{}));
 										autoSendTosUFile.delete();
 										autoSendTosUFile.createNewFile();
-										writeToFile(autoSendTosUFile, autoSendTosU.toArray(new String[]{}), "SEPARATOR_NEW_LINE");
+										writeToFile(autoSendTosUFile, autoSendTosU.toArray(new String[]{}));
 										break;
 									}
 							}
@@ -3496,10 +3549,10 @@ public class ChatHeadService extends Service
 										autoSendMsgsU.remove(asu);
 										autoSendMsgsFile.delete();
 										autoSendMsgsFile.createNewFile();
-										writeToFile(autoSendMsgsFile, autoSendMsgs.toArray(new String[]{}), "SEPARATOR_NEW_LINE");
+										writeToFile(autoSendMsgsFile, autoSendMsgs.toArray(new String[]{}));
 										autoSendMsgsUFile.delete();
 										autoSendMsgsUFile.createNewFile();
-										writeToFile(autoSendMsgsUFile, autoSendMsgsU.toArray(new String[]{}), "SEPARATOR_NEW_LINE");
+										writeToFile(autoSendMsgsUFile, autoSendMsgsU.toArray(new String[]{}));
 										break;
 									}
 							}
@@ -4413,7 +4466,7 @@ public class ChatHeadService extends Service
 			return -num;
 	}
 
-	public boolean writeToFile(File file, String[] data, String SEPARATOR) throws IOException
+	public boolean writeToFile(File file, String[] data) throws IOException
 	{
 		FileOutputStream outputStream = new FileOutputStream(file, file.exists());
 		OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream);
@@ -4508,7 +4561,7 @@ public class ChatHeadService extends Service
 			ydpi = getResources().getDisplayMetrics().ydpi;
 
 			chatHeadWidth = (int)(xdpi / chatHeadSizeDiv);
-			chatHeadHeight = (int)(ydpi / chatHeadSizeDiv);
+			chatHeadHeight = chatHeadWidth;
 
 			chatListWidth = screenWidth - chatHeadWidth * 2;
 			chatListHeight = screenHeight - chatHeadHeight * 2;
@@ -4626,14 +4679,14 @@ public class ChatHeadService extends Service
 
 				ignoredsFile.delete();
 				ignoredsFile.createNewFile();
-				writeToFile(ignoredsFile, ignoredNames, "SEPARATOR_NEW_LINE");
+				writeToFile(ignoredsFile, ignoredNames);
 
 				sentsFile.delete();
 				sentsFile.createNewFile();
-				writeToFile(sentsFile, sentNames, "SEPARATOR_NEW_LINE");
+				writeToFile(sentsFile, sentNames);
 
-				writeToFile(sentsFile, sends.toArray(new String[]{}), "SEPARATOR_NEW_LINE");
-				writeToFile(ignoredsFile, ignores.toArray(new String[]{}), "SEPARATOR_NEW_LINE");
+				writeToFile(sentsFile, sends.toArray(new String[]{}));
+				writeToFile(ignoredsFile, ignores.toArray(new String[]{}));
 			}catch(Exception e){}
 
 			if(showingChat)
