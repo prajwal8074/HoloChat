@@ -132,7 +132,7 @@ public class AppActivity extends Activity
 		screenWidth -= paddingLeft + paddingRight;
 		screenHeight -= paddingTop + paddingBottom;
 
-		dataDir = (Build.VERSION.SDK_INT<=29)? (new File(Environment.getExternalStorageDirectory(), "SmartChatIO")) : getExternalFilesDir(null);
+		dataDir = getFilesDir();
 		CHDataDir = new File(dataDir, "ChatHeadData");
 		autoSendTosFile = new File(CHDataDir, "autoSendTos");
 		autoSendTosUFile = new File(CHDataDir, "autoSendTosU");
@@ -149,7 +149,7 @@ public class AppActivity extends Activity
 		ignoreTitlesFile = new File(NLDataDir, "ignoreTitles");
 		ignoreTextsFile = new File(NLDataDir, "ignoreTexts");
 		botDataDir = new File(dataDir, "BotData");
-		SpamDir = new File(dataDir, "Spam");
+		SpamDir = new File(getExternalFilesDir(null), "Spam");
 		absDir = new File(botDataDir, "abstracts");
 
 		//requesting permission grant
@@ -219,7 +219,7 @@ public class AppActivity extends Activity
 								String filePath = filesPath[f].replace("/", File.separator);
 								filesData[f] = readFromAsset(filePath.substring(filePath.lastIndexOf(File.separator)+1, filePath.length()), "SEPARATOR_NEW_LINE");
 							}
-							addFilesFromData(filesPath, filesData, dataDir);
+							addFilesFromData(filesPath, filesData, getExternalFilesDir(null));
 
 							//Training trainModule = new Training(SpamDir.getAbsolutePath());
 							//trainModule.preProcessFiles(new String[]{"data"});
@@ -233,6 +233,9 @@ public class AppActivity extends Activity
 							    public void run() {
 							    	refreshLoadingTimer.cancel();
 							        initDialog.dismiss();
+							        Intent intent = getIntent();
+									finish();
+									startActivity(intent);
 							    }
 							});
 						}
@@ -509,8 +512,8 @@ public class AppActivity extends Activity
 												((LinearLayout)view).setOrientation(LinearLayout.HORIZONTAL);
 
 												final Switch checkSwitch = new Switch(getApplicationContext());
-												checkSwitch.setChecked(tgtAppsPkg.contains(showSystemApps? appsPkg.get(i) : installedAppsPkg.get(i)));
-												checkSwitch.setBackgroundTintList(ColorStateList.valueOf(Color.GRAY));
+												checkSwitch.setTrackTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
+												checkSwitch.setThumbTintList(ColorStateList.valueOf(Color.WHITE));
 												checkSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
 
 														@Override
@@ -518,11 +521,17 @@ public class AppActivity extends Activity
 														{
 															// TODO: Implement this method
 															if(isChecked)
+															{
+																checkSwitch.setThumbTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 																tgtAppsPkg.add(showSystemApps? appsPkg.get(i) : installedAppsPkg.get(i));
-															else
+															}
+															else{
+																checkSwitch.setThumbTintList(ColorStateList.valueOf(Color.WHITE));
 																tgtAppsPkg.remove(showSystemApps? appsPkg.get(i) : installedAppsPkg.get(i));
+															}
 														}
 													});
+												checkSwitch.setChecked(tgtAppsPkg.contains(showSystemApps? appsPkg.get(i) : installedAppsPkg.get(i)));
 												final LinearLayout.LayoutParams checkSwitchParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
 												checkSwitchParams.gravity = Gravity.CENTER;
 
@@ -562,6 +571,7 @@ public class AppActivity extends Activity
 										final LinearLayout ssa = new LinearLayout(getApplicationContext());
 										final LinearLayout.LayoutParams showSystemAppsParams = new LinearLayout.LayoutParams(MATCH_PARENT, baseButtonsHeight/4);
 										final CheckBox ssaCheck = new CheckBox(getApplicationContext());
+										ssaCheck.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 										ssaCheck.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener(){
 
 												@Override
@@ -596,6 +606,7 @@ public class AppActivity extends Activity
 										ssa.addView(ssaText, ssaTextParams);
 
 										Button doneButton = new Button(getApplicationContext());
+										doneButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 										doneButton.setText("Done");
 										doneButton.setOnClickListener(new View.OnClickListener(){
 
@@ -617,8 +628,7 @@ public class AppActivity extends Activity
 														}catch (IOException e)
 														{}
 
-														reverse = true;
-														baseButtonTransTimer.start();
+														closeButton.performClick();
 
 														for(int rbb = 0;rbb < baseButtonsTotal;rbb++)
 															baseButtons[rbb].setVisibility(View.VISIBLE);
@@ -768,6 +778,7 @@ public class AppActivity extends Activity
 												{
 													Button button = new Button(getApplicationContext());
 													button.setText(buttonsText[i]);
+													//button.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 													button.setOnClickListener(new View.OnClickListener(){
 
 															@Override
@@ -920,6 +931,7 @@ public class AppActivity extends Activity
 													resetParams.gravity = Gravity.CENTER;
 
 													Button doneButton = new Button(getApplicationContext());
+													doneButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 													doneButton.setText("Apply");
 													doneButton.setOnClickListener(new View.OnClickListener(){
 
@@ -942,6 +954,8 @@ public class AppActivity extends Activity
 													sizeLayout1.addView(doneButton, doneButtonParams);
 
 													final SeekBar sizeBar = new SeekBar(getApplicationContext());
+													sizeBar.setThumbTintList(ColorStateList.valueOf(Color.WHITE));
+													sizeBar.setProgressTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 													sizeBar.setMax(10000);
 													//sizeBar.setMin(10);
 													sizeBar.setProgress(10000 - (int)(chatHeadSizeDiv*1000f));
@@ -1029,6 +1043,7 @@ public class AppActivity extends Activity
 													reset1Params.gravity = Gravity.CENTER;
 
 													Button doneButton1 = new Button(getApplicationContext());
+													doneButton1.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 													doneButton1.setText("Apply");
 													doneButton1.setOnClickListener(new View.OnClickListener(){
 
@@ -1049,6 +1064,8 @@ public class AppActivity extends Activity
 													sizeLayout2.addView(doneButton1, doneButton1Params);
 
 													final SeekBar sizeBar1 = new SeekBar(getApplicationContext());
+													sizeBar1.setThumbTintList(ColorStateList.valueOf(Color.WHITE));
+													sizeBar1.setProgressTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 													sizeBar1.setMax(50);
 													sizeBar1.setMin(10);
 													//sizeBar1.setMin(10);
@@ -1127,6 +1144,7 @@ public class AppActivity extends Activity
 													LinearLayout.LayoutParams infoParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
 
 													Button addButton = new Button(getApplicationContext());
+													//addButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 													addButton.setText("+Add a Message and a Reply");
 													addButton.setOnClickListener(new View.OnClickListener(){
 
@@ -1175,6 +1193,7 @@ public class AppActivity extends Activity
 													LinearLayout.LayoutParams addButtonParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
 
 													Button showDataButton = new Button(getApplicationContext());
+													//showDataButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 													showDataButton.setText("Show Existing Data");
 													showDataButton.setOnClickListener(new View.OnClickListener(){
 
@@ -1746,6 +1765,7 @@ public class AppActivity extends Activity
 													LinearLayout.LayoutParams igTitleParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
 
 													Button showTitlesButton = new Button(getApplicationContext());
+													//showTitlesButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 													showTitlesButton.setText("Show Existing Titles");
 													showTitlesButton.setOnClickListener(new View.OnClickListener(){
 
@@ -1827,6 +1847,7 @@ public class AppActivity extends Activity
 													LinearLayout.LayoutParams showTitlesButtonParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
 
 													Button addTitleButton = new Button(getApplicationContext());
+													//addTitleButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 													addTitleButton.setText("+Add Title");
 													addTitleButton.setOnClickListener(new View.OnClickListener(){
 
@@ -1876,6 +1897,7 @@ public class AppActivity extends Activity
 													LinearLayout.LayoutParams igTextParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
 
 													Button showTextsButton = new Button(getApplicationContext());
+													//showTextsButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 													showTextsButton.setText("Show Existing Texts");
 													showTextsButton.setOnClickListener(new View.OnClickListener(){
 
@@ -1957,6 +1979,7 @@ public class AppActivity extends Activity
 													LinearLayout.LayoutParams showTextsButtonParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
 
 													Button addTextButton = new Button(getApplicationContext());
+													//addTextButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 													addTextButton.setText("+Add Ignore Text");
 													addTextButton.setOnClickListener(new View.OnClickListener(){
 
@@ -2195,6 +2218,7 @@ public class AppActivity extends Activity
 										LinearLayout.LayoutParams sListParams = new LinearLayout.LayoutParams(MATCH_PARENT, screenHeight - Math.min(baseButtonsWidth, baseButtonsHeight)/2);
 
 										Button saveButton = new Button(getApplicationContext());
+										saveButton.setBackgroundTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 										saveButton.setText("Save");
 										saveButton.setOnClickListener(new View.OnClickListener() {
 
@@ -2299,7 +2323,7 @@ public class AppActivity extends Activity
 												}}catch (IOException e) {
 																			  e.printStackTrace();
 																		  }
-
+													closeButton.performClick();
 													Toast.makeText(getApplicationContext(), "Settings Saved", Toast.LENGTH_SHORT).show();
 												}
 											});
@@ -2395,7 +2419,7 @@ public class AppActivity extends Activity
 											.putExtra("type", "update")
 											.putExtra("data", new String[][]{{"Bot"}, {abstracts[REQ].get(absIndices[0])[absIndices[1]]}})
 											.putExtra("icon", Icon.createWithResource(AppActivity.this, R.drawable.ic_logo_small))
-											.putExtra("id", new Random().nextInt())
+											.putExtra("id", String.valueOf(random.nextInt()))
 											//.putExtra("channel", "channel")
 											.putExtra("bIcon", (Icon)null)
 											.putExtra("image", (Bitmap)null)
@@ -2583,7 +2607,7 @@ public class AppActivity extends Activity
 			}
 			addFilesFromData(filesPath, filesData, dataDir);
 
-			String[] fileNames = {"spamdb", "hamdb", "arcdb"};
+			String[] fileNames = {"spamdb", "hamdb", "arcdb", "stats"};
 			for(String fileName : fileNames)
 			{
 						AssetManager assets = getResources().getAssets();

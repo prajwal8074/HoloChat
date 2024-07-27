@@ -562,7 +562,7 @@ public class NotificationScannerService extends NotificationListenerService
 		    addIntent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
 		    getApplicationContext().sendBroadcast(addIntent);*/
 
-		dataDir = (Build.VERSION.SDK_INT<=29)? (new File(Environment.getExternalStorageDirectory(), "SmartChatIO")) : getExternalFilesDir(null);
+		dataDir = getFilesDir();
 		NLdataDir = new File(dataDir, "NotificationListenerData");
 		CHDataDir = new File(dataDir, "ChatHeadData");
 		tgtAppsPkgFile = new File(NLdataDir, "tgtAppsPkg");

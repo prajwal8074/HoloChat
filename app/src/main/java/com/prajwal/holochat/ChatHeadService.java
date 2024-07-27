@@ -18,6 +18,7 @@ import java.util.*;
 import java.lang.Math;
 import com.google.android.material.tabs.TabLayout;
 import android.content.pm.ServiceInfo;
+import android.text.Html;
 
 //import com.google.android.gms.ads.*;
 //import com.google.android.gms.ads.initialization.*;
@@ -129,6 +130,8 @@ public class ChatHeadService extends Service
 	ArrayList<Boolean> autoSends;
 	ArrayList<Boolean> sendButtonClicks;
 	ArrayList<Boolean> chatRemoves;
+	ArrayList<Boolean> chatSpams;
+	ArrayList<Boolean> chatNotSpams;
 	ArrayList<Boolean> seens;
 	ArrayList<Parcelable> chatListStates;
 	int chatRemovesCount = 0;
@@ -250,9 +253,9 @@ public class ChatHeadService extends Service
 					});*/
 
 					random = new Random();
-					dataDir = (Build.VERSION.SDK_INT<=29)? (new File(Environment.getExternalStorageDirectory(), "SmartChatIO")) : getExternalFilesDir(null);
+					dataDir = getFilesDir();
 					botDataDir = new File(dataDir, "BotData");
-					SpamDir = new File(dataDir, "Spam");
+					SpamDir = new File(getExternalFilesDir(null), "Spam");
 					CHDataDir = new File(dataDir, "ChatHeadData");
 					NLDataDir = new File(dataDir, "NotificationListenerData");
 					ignoreTitlesFile = new File(NLDataDir, "ignoreTitles");
@@ -357,27 +360,31 @@ public class ChatHeadService extends Service
 												if(replies.get(chatIndex).equals((PENDING)))
 												{
 													try{
-														File fr = new File(SpamDir, "tmp");
-														writeToFile(fr, new String[]{messages.get(chatIndex)});
-														FileReader reader = new FileReader(fr);
-														double result = spamFilter.classification(reader);
+														if(!messages.get(chatIndex).trim().equals(""))
+														{
+															File fr = new File(SpamDir, "tmp");
+															writeToFile(fr, new String[]{messages.get(chatIndex)});
+															FileReader reader = new FileReader(fr);
+															double result = spamFilter.classification(reader);
 
-												        if(result==1)
-												        	if(!isInterrupted())
-												        	{
-												        		chatRemoves.set(chatIndex, true);
-												        		chatRemovesCount++;
-																handler.post(new Runnable(){
+													        if(result==1)
+													        	if(!isInterrupted())
+													        	{
+													        		chatNotSpams.set(chatIndex, false);
+													        		chatRemoves.set(chatIndex, true);
+													        		chatRemovesCount++;
+																	handler.post(new Runnable(){
 
-																	@Override
-																	public void run()
-																	{
-																		onChatDataChange();
-																		refreshNotification();
-																	}
-																});
-												        	}
-												        fr.delete();
+																		@Override
+																		public void run()
+																		{
+																			onChatDataChange();
+																			refreshNotification();
+																		}
+																	});
+													        	}
+													        fr.delete();
+														}
 												    }catch (IOException e){
 												    }finally
 												    {
@@ -1656,12 +1663,89 @@ public class ChatHeadService extends Service
 																																	haptic(5, 192);
 																																	if(chatInFocus == CHAT_ALL-1)
 																																	{
+																																		if(chatNotSpams.get(chatIndex) != null)
+																																		{
+																																			final AlertDialog spamDialog = new AlertDialog.Builder(ChatHeadService.this)
+																																			.setCancelable(true)
+																																			.setTitle("Not Spam?")
+																																			.setMessage(Html.fromHtml("<font color='#FFFFFF'>Is this message not spam?</font>"))
+																																			.setPositiveButton("Yes", new DialogInterface.OnClickListener(){
+																																				@Override
+																																				public void onClick(DialogInterface p1, int p2)
+																																				{
+																																					haptic(5, 192);
+																																					if(chatSpams.get(chatIndex))
+																																						chatSpams.set(chatIndex, false);
+																																					else
+																																						chatNotSpams.set(chatIndex, true);
+																																				}
+																																			})
+																																			.setNegativeButton("Cancel", new DialogInterface.OnClickListener(){
+																																				@Override
+																																				public void onClick(DialogInterface p1, int p2)
+																																				{
+																																					haptic(5, 192);
+																																				}
+																																			})
+																																			.create();
+																																			spamDialog.getWindow().setType(typeOverlay);
+																																			spamDialog.getWindow().setBackgroundDrawableResource(R.drawable.dialog_background);
+																																			spamDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+																																                @Override
+																																                public void onShow(DialogInterface arg0) {
+																																                    int titleId = getResources().getIdentifier("alertTitle", "id", "android");
+																																	                TextView title = (TextView) spamDialog.findViewById(titleId);
+																																					title.setTextColor(Color.parseColor("#01def9"));
+																																		            Button nbutton = spamDialog.getButton(DialogInterface.BUTTON_NEGATIVE);
+																																			        nbutton.setTextColor(Color.parseColor("#00dff9"));
+																																			        Button pbutton = spamDialog.getButton(DialogInterface.BUTTON_POSITIVE);
+																																			        pbutton.setTextColor(Color.parseColor("#00dff9"));
+																																                }
+																																			});
+																																			spamDialog.show();
+																																		}
 																																		chatRemoves.set(chatIndex, false);
 																																		chatRemovesCount--;
 																																		onChatDataChange();
 																																	}
 																																	else
 																																	{
+																																		final AlertDialog spamDialog = new AlertDialog.Builder(ChatHeadService.this)
+																																		.setCancelable(true)
+																																		.setTitle("Spam?")
+																																		.setMessage(Html.fromHtml("<font color='#FFFFFF'>Ignore this type of message next time?</font>"))
+																																		.setPositiveButton("Yes", new DialogInterface.OnClickListener(){
+																																			@Override
+																																			public void onClick(DialogInterface p1, int p2)
+																																			{
+																																				haptic(5, 192);
+																																				chatSpams.set(chatIndex, true);
+																																				chatNotSpams.set(chatIndex, false);
+																																			}
+																																		})
+																																		.setNegativeButton("Cancel", new DialogInterface.OnClickListener(){
+																																			@Override
+																																			public void onClick(DialogInterface p1, int p2)
+																																			{
+																																				haptic(5, 192);
+																																			}
+																																		})
+																																		.create();
+																																		spamDialog.getWindow().setType(typeOverlay);
+																																		spamDialog.getWindow().setBackgroundDrawableResource(R.drawable.dialog_background);
+																																		spamDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+																															                @Override
+																															                public void onShow(DialogInterface arg0) {
+																															                    int titleId = getResources().getIdentifier("alertTitle", "id", "android");
+																																                TextView title = (TextView) spamDialog.findViewById(titleId);
+																																				title.setTextColor(Color.parseColor("#01def9"));
+																																	            Button nbutton = spamDialog.getButton(DialogInterface.BUTTON_NEGATIVE);
+																																		        nbutton.setTextColor(Color.parseColor("#00dff9"));
+																																		        Button pbutton = spamDialog.getButton(DialogInterface.BUTTON_POSITIVE);
+																																		        pbutton.setTextColor(Color.parseColor("#00dff9"));
+																															                }
+																																		});
+																																		spamDialog.show();
 																																		chatRemoves.set(chatIndex, true);
 																																		chatRemovesCount++;
 																																		onChatDataChange();
@@ -2980,32 +3064,74 @@ public class ChatHeadService extends Service
 
 														mWindowManager.updateViewLayout(mChatHeadView, mChatHeadViewParams);
 
-														/*mWindowManager.removeView(mChatHeadView);
-														 mWindowManager.removeView(mRemoveView);
-														 mWindowManager.removeView(mBlackBackView);
-														 */
-														mBlackBackView.setVisibility(View.GONE);
-														mRemoveView.setVisibility(View.GONE);
-
-														/*new Thread(){
-												            public void run(){
-												            	try
+														int messagesCount = 0;
+														for(boolean isSpam : chatSpams)
+															if(isSpam)
+															{
+																messagesCount++;
+															}
+														for(Boolean notSpam : chatNotSpams)
+															if(notSpam!=null && notSpam)
+															{
+																messagesCount++;
+															}
+														notification.setContentTitle("Closing");
+														notification.setContentText("processing spam messages");
+														notification.setSubText(String.valueOf(messagesCount)+" messages");
+														startForeground(notificationId, notification.build(), foregroundType);
+														boolean retrain = false;
+														File spamDataDir = new File(SpamDir, "data");
+														for(boolean isSpam : chatSpams)
+															if(isSpam)
+															{
+																retrain = true;
+																for(int chatIndex = 0;chatIndex<messages.size();chatIndex++)
 																{
-																	Training trainModule = new Training(SpamDir.getAbsolutePath());
-																	trainModule.preProcessFiles(new String[]{"data"});
+																	if(chatSpams.get(chatIndex))
+																	{
+																		File spamFile = new File(spamDataDir, "spam"+String.valueOf(spamDataDir.list().length));
+																		try{writeToFile(spamFile, new String[]{messages.get(chatIndex)});}catch(IOException e){}
+																	}
 																}
-																catch(Exception e)
-																{}finally{
-																	runOnUiThread(new Runnable() {
-																	    @Override
-																	    public void run() {
-																	        stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
-																	    }
-																	});
+																break;
+															}
+														for(Boolean notSpam : chatNotSpams)
+															if(notSpam!=null && notSpam)
+															{
+																retrain = true;
+																for(int chatIndex = 0;chatIndex<messages.size();chatIndex++)
+																{
+																	if(chatNotSpams.get(chatIndex)!=null && chatNotSpams.get(chatIndex))
+																	{
+																		File hamFile = new File(spamDataDir, "ham"+String.valueOf(spamDataDir.list().length));
+																		try{writeToFile(hamFile, new String[]{messages.get(chatIndex)});}catch(IOException e){}
+																	}
 																}
-												            }
-												        }.start();*/
-												        stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+																break;
+															}
+														if(retrain)
+														{
+															mBlackBackView.setVisibility(View.GONE);
+															mChatHeadView.setVisibility(View.GONE);
+															mRemoveView.setVisibility(View.GONE);
+															new Thread(){
+													            public void run(){
+													            	try
+																	{
+																		Training trainModule = new Training(SpamDir.getAbsolutePath());
+																		trainModule.preProcessFiles(new String[]{"data"});
+																	}
+																	catch(Exception e)
+																	{}finally{
+																		stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+																	}
+													            }
+													        }.start();
+													    }else
+													    {
+													    	stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+													    }
+												        //stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
 													}
 												}.start();
 											}
@@ -3341,6 +3467,8 @@ public class ChatHeadService extends Service
 						sendButtonClicks = new ArrayList<Boolean>();
 						seens = new ArrayList<Boolean>();
 						chatRemoves = new ArrayList<Boolean>();
+						chatSpams = new ArrayList<Boolean>();
+						chatNotSpams = new ArrayList<Boolean>();
 
 						toLearn = new ArrayList<String[]>();
 
@@ -3422,6 +3550,8 @@ public class ChatHeadService extends Service
 											chatRemovesCount--;
 											refreshNotification();
 										}
+										chatSpams.set(j, false);
+										chatNotSpams.set(j, null);
 										chatListStates.set(j+2, chatListStateEmpty);
 
 										//things that are to be processed in chatHeadService rather than NotificationScannerService
@@ -3472,6 +3602,8 @@ public class ChatHeadService extends Service
 								imgs.add(img);
 								seens.add(null);
 								chatRemoves.add(false);
+								chatSpams.add(false);
+								chatNotSpams.add(null);
 								chatListStates.add(chatListStateEmpty);
 
 								//things that are to be processed in chatHeadService rather than NotificationScannerService
@@ -3820,6 +3952,8 @@ public class ChatHeadService extends Service
 				sendButtonClicks = (ArrayList<Boolean>)intent.getExtras().get("sendButtonClicks");
 				seens = (ArrayList<Boolean>)intent.getExtras().get("seens");
 				chatRemoves = (ArrayList<Boolean>)intent.getExtras().get("chatRemoves");
+				chatSpams = (ArrayList<Boolean>)intent.getExtras().get("chatSpams");
+				chatNotSpams = (ArrayList<Boolean>)intent.getExtras().get("chatNotSpams");
 				chatListStates = (ArrayList<Parcelable>)intent.getExtras().get("chatListStates");
 
 				if(mWindowManager != null)
@@ -4034,7 +4168,18 @@ public class ChatHeadService extends Service
 				if(!chatRemoves.get(s))
 					notifyStrTxt += " " + senders.get(s) + ",";
 		notifyStrTxt = notifyStrTxt.substring(0, notifyStrTxt.length()-1);
-		String notifyStrRly = String.valueOf(chatRemovesCount) + " " + "spams";
+		int spamsCount = 0;
+		for(boolean isSpam : chatSpams)
+			if(isSpam)
+			{
+				spamsCount++;
+			}
+		for(Boolean notSpam : chatNotSpams)
+			if(notSpam!=null && !notSpam)
+			{
+				spamsCount++;
+			}
+		String notifyStrRly = String.valueOf(spamsCount) + " " + "spams";
 		notification.setContentText(notifyStrTxt);
 		notification.setContentTitle(notifyStrMsg);
 		notification.setSubText(notifyStrRly);
@@ -4541,6 +4686,8 @@ public class ChatHeadService extends Service
 		restartIntent.putExtra("sendButtonClicks", sendButtonClicks);
 		restartIntent.putExtra("seens", seens);
 		restartIntent.putExtra("chatRemoves", chatRemoves);
+		restartIntent.putExtra("chatSpams", chatSpams);
+		restartIntent.putExtra("chatNotSpams", chatNotSpams);
 		restartIntent.putExtra("chatListStates", chatListStates);
 		startService(restartIntent);
 	}
