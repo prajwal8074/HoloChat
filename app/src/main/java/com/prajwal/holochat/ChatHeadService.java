@@ -518,7 +518,9 @@ public class ChatHeadService extends Service
 																{
 																	// TODO: Implement this method
 																	replies.set(chatIndex, "");
-																	replyViews.get(chatViewIndex).setText("");
+																	if(visible)
+																		if(showingChat)
+																			replyViews.get(chatViewIndex).setText("");
 																}
 															});
 														}
