@@ -138,15 +138,15 @@ public class NotificationScannerService extends NotificationListenerService
 				
 				case "replyIntentsReq" :
 
-					boolean isReplyActive = false;
-					String id = intent.getStringExtra("id");
-					int chatIndex =intent.getIntExtra("chatIndex", -1);
-					String sender = intent.getStringExtra("sender");
-					String message = intent.getStringExtra("message");
-					String reply = intent.getStringExtra("reply");
-
 					try
 					{
+						boolean isReplyActive = false;
+						String id = intent.getStringExtra("id");
+						int chatIndex =intent.getIntExtra("chatIndex", -1);
+						String sender = intent.getStringExtra("sender");
+						String message = intent.getStringExtra("message");
+						String reply = intent.getStringExtra("reply");
+
 						for(int s=0;s<sbns.size();s++)
 						{
 							StatusBarNotification sbn = sbns.get(s);
