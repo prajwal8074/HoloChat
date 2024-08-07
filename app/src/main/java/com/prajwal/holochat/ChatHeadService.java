@@ -222,20 +222,21 @@ public class ChatHeadService extends Service
 					notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
 					notification = new Notification.Builder(this)
 						.setContentTitle("0 messages")
-						.setContentText("0 messages")
+						.setContentText("")
 						.setSubText("0 spams")
 						.setTicker("Chat Head Active")
 						.setSmallIcon(R.drawable.ic_logo_transparent)
 						//.setLargeIcon(Icon.createWithResource(this, R.drawable.ic_logo))
 						.setColor(Color.argb(Integer.MAX_VALUE, 0, 255, 251))
 						.setContentIntent(PendingIntent.getActivity(this, 0, 
-							notificationIntent, PendingIntent.FLAG_MUTABLE));
+							notificationIntent, PendingIntent.FLAG_MUTABLE))
+						.setPriority(Notification.PRIORITY_MAX);
 					
 					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
 					{
 						String CHANNEL_ID = getPackageName().replace(".", "_");// The id of the channel. 
 						notification.setChannelId(CHANNEL_ID);
-						NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, "Chat Head Active Notification", NotificationManager.IMPORTANCE_LOW);	
+						NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, "Chat Head Active Notification", NotificationManager.IMPORTANCE_MAX);	
 						NotificationManager mNotificationManager =
 							(NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 						mNotificationManager.createNotificationChannel(mChannel);
@@ -2211,18 +2212,18 @@ public class ChatHeadService extends Service
 																																	
 																																	if(!(replyStr.equals(PENDING) || replyStr.equals(LOADING)))
 																																	{
-																																	if(!sent.get(chatViewIndex))
-																																	{
-																																		if(!replyStr.trim().equals(replies.get(chatIndex).trim())
-																																		   && !(replyStr.equals(PENDING) || replyStr.equals(LOADING)))
+																																		if(!sent.get(chatViewIndex))
 																																		{
-																																			if(sendDataView.isChecked())
+																																			if(!replyStr.trim().equals(replies.get(chatIndex).trim())
+																																			   && !(replyStr.equals(PENDING) || replyStr.equals(LOADING)))
 																																			{
-																																				toLearn.add(new String[]{messages.get(chatIndex), replyStr});
-																																				loaded = false;
+																																				if(sendDataView.isChecked())
+																																				{
+																																					toLearn.add(new String[]{messages.get(chatIndex), replyStr});
+																																					loaded = false;
+																																				}
 																																			}
 																																		}
-																																	}
 
 																																		directReply = false;
 																																		if(!pkgs.get(chatIndex).equals(appPkg))
@@ -3789,8 +3790,26 @@ public class ChatHeadService extends Service
 				else
 				{
 					if(res.equals("notFound"))
-						Toast.makeText(getApplicationContext(), "Notification removed", Toast.LENGTH_SHORT).show();
+					{
+						int chatIndex = intent.getIntExtra("chatIndex", -1);
+						String replyStr = intent.getStringExtra("reply");
 
+						if(chatIndex != -1)
+						{
+							try
+							{
+								if(sendTos.get(chatIndex).equals(""))
+									sendTos.set(chatIndex, getSendTo(senders.get(chatIndex), pkgs.get(chatIndex)));
+
+								sendTextMessage(replyStr, pkgs.get(chatIndex), sendTos.get(chatIndex));
+							}catch(Exception e)
+							{
+								Toast.makeText(getApplicationContext(), "failed to find contact", Toast.LENGTH_SHORT).show();
+								sendTextMessage(replyStr, pkgs.get(chatIndex), null);
+							}
+						}
+					}
+					
 					else
 
 					if(res.equals("notSupported"))
@@ -3889,50 +3908,50 @@ public class ChatHeadService extends Service
 			{
 				String id = intent.getStringExtra("id");
 				String res = intent.getStringExtra("res");
-						//removing notification ids for the notification
-						/*if(!id.equals(""))
-							for(int p = 0;p < ids.size();p++)
-								if(ids.get(p).equals(id))
-									ids.set(p, "");*/
+				//removing notification ids for the notification
+				/*if(!id.equals(""))
+					for(int p = 0;p < ids.size();p++)
+						if(ids.get(p).equals(id))
+							ids.set(p, "");*/
 
-						//onChatDataChange();
+				//onChatDataChange();
 
-						if(res.equals("ready"))
+				if(res.equals("ready"))
+				{
+					PendingIntent pendingIntent = (PendingIntent) intent.getExtras().get("pIntent");
+
+					try
+					{
+						pendingIntent.send();
+					}catch(PendingIntent.CanceledException e)
+					{/*won't stop here*/
+
+						stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+						restartSelf();
+					}
+				}
+
+				else
+
+				if(res.equals("notFound"))
+				{
+					int chatIndex = intent.getIntExtra("chatIndex", -1);
+
+					if(chatIndex != -1)
+					{
+						try
 						{
-							PendingIntent pendingIntent = (PendingIntent) intent.getExtras().get("pIntent");
+							if(sendTos.get(chatIndex).equals(""))
+								sendTos.set(chatIndex, getSendTo(senders.get(chatIndex), pkgs.get(chatIndex)));
 
-							try
-							{
-								pendingIntent.send();
-							}catch(PendingIntent.CanceledException e)
-							{/*won't stop here*/
-
-								stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
-								restartSelf();
-							}
-						}
-
-						else
-
-						if(res.equals("notFound"))
+							sendTextMessage(MESSAGE_EMPTY, pkgs.get(chatIndex), sendTos.get(chatIndex));
+						}catch(Exception e)
 						{
-							int chatIndex = intent.getIntExtra("chatIndex", -1);
-
-							if(chatIndex != -1)
-							{
-								try
-																																			{
-																																					if(sendTos.get(chatIndex).equals(""))
-																																						sendTos.set(chatIndex, getSendTo(senders.get(chatIndex), pkgs.get(chatIndex)));
-
-																																					sendTextMessage(MESSAGE_EMPTY, pkgs.get(chatIndex), sendTos.get(chatIndex));
-																																			}catch(Exception e)
-																																			{
-																																				Toast.makeText(getApplicationContext(), "failed to find contact", Toast.LENGTH_SHORT).show();
-																																				sendTextMessage(MESSAGE_EMPTY, pkgs.get(chatIndex), null);
-																																			}
-							}
+							Toast.makeText(getApplicationContext(), "failed to find contact", Toast.LENGTH_SHORT).show();
+							sendTextMessage(MESSAGE_EMPTY, pkgs.get(chatIndex), null);
 						}
+					}
+				}
 			}
 
 			else

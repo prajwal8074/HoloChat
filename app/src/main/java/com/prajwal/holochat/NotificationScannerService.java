@@ -82,6 +82,13 @@ public class NotificationScannerService extends NotificationListenerService
 										 .putExtra("bIcon", (Icon)null)
 										 .putExtra("image", (Bitmap)null)
 										 .putExtra("pkg", getPackageName()));
+							sbns.add(notesToSend.get(0));
+							try{
+								if(!Boolean.parseBoolean(readFromFile(keepNotificationsFile, "SEPARATOR_NEW_LINE")[0]))
+									cancelNotification(notesToSend.get(0).getKey());
+							}
+							catch(IOException e)
+							{}
 						}
 						notesToSend.remove(0);
 					}
@@ -94,7 +101,16 @@ public class NotificationScannerService extends NotificationListenerService
 
 					if(notesToSend.size() > 0)
 					{
-						sendNotification(ChatHeadService.class, notesToSend.get(0));
+						if(sendNotification(ChatHeadService.class, notesToSend.get(0)))
+						{
+							sbns.add(notesToSend.get(0));
+							try{
+								if(!Boolean.parseBoolean(readFromFile(keepNotificationsFile, "SEPARATOR_NEW_LINE")[0]))
+									cancelNotification(notesToSend.get(0).getKey());
+							}
+							catch(IOException e)
+							{}
+						}
 						notesToSend.remove(0);
 					}
 
@@ -124,6 +140,10 @@ public class NotificationScannerService extends NotificationListenerService
 
 					boolean isReplyActive = false;
 					String id = intent.getStringExtra("id");
+					int chatIndex =intent.getIntExtra("chatIndex", -1);
+					String sender = intent.getStringExtra("sender");
+					String message = intent.getStringExtra("message");
+					String reply = intent.getStringExtra("reply");
 
 					try
 					{
@@ -134,10 +154,6 @@ public class NotificationScannerService extends NotificationListenerService
 							{
 								isReplyActive = true;
 								Notification n = sbn.getNotification();
-								int chatIndex =intent.getIntExtra("chatIndex", -1);
-								String sender = intent.getStringExtra("sender");
-								String message = intent.getStringExtra("message");
-								String reply = intent.getStringExtra("reply");
 								Bundle localBundle = n.extras;
 								//Notification.Action action = null;
 								
@@ -283,6 +299,8 @@ public class NotificationScannerService extends NotificationListenerService
 							Intent replyIntent = new Intent(NotificationScannerService.this, ChatHeadService.class);
 							replyIntent.putExtra("type", "replyIntentsRes");
 							replyIntent.putExtra("res", "notFound");
+							replyIntent.putExtra("chatIndex", chatIndex);
+							replyIntent.putExtra("reply", reply);
 							replyIntent.putExtra("id", id);
 							startService(replyIntent);
 						}
@@ -623,7 +641,12 @@ public class NotificationScannerService extends NotificationListenerService
 						if(updated)
 						{
 							//Toast.makeText(getApplicationContext(), "sendNotification()", Toast.LENGTH_LONG).show();
-							sendNotification(ChatHeadService.class, sbn);
+							if(sendNotification(ChatHeadService.class, sbn))
+							{
+								sbns.add(sbn);
+								if(!Boolean.parseBoolean(readFromFile(keepNotificationsFile, "SEPARATOR_NEW_LINE")[0]))
+									cancelNotification(sbn.getKey());
+							}
 						}
 						else
 						{
@@ -638,12 +661,6 @@ public class NotificationScannerService extends NotificationListenerService
 							updated = false;
 							notesToSend.add(sbn);
 						}
-					}
-					if(shouldSendNotification(sbn))
-					{
-						sbns.add(sbn);
-						if(!Boolean.parseBoolean(readFromFile(keepNotificationsFile, "SEPARATOR_NEW_LINE")[0]))
-							cancelNotification(sbn.getKey());
 					}
 				}//else
 					//Toast.makeText(getApplicationContext(), "ignored", Toast.LENGTH_LONG).show();

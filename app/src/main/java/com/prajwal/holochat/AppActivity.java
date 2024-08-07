@@ -355,9 +355,9 @@ public class AppActivity extends Activity
 			//just for no typos
 			final String CCH = "Create Chat Head";
 			final String TA = "Target Apps";
-			final String TUT = "Tutorial";
+			final String TUT = "Check Update";
 			final String NW = "Not Working?";
-			final String Su = "Review App";
+			final String Su = "Contact";
 			final String S = "Settings";
 			final String[] baseButtonsText = new String[]{
 				CCH,
@@ -371,7 +371,7 @@ public class AppActivity extends Activity
 			final boolean[] baseButtonsExpandable = new boolean[]{
 				false,
 				true,
-				true,
+				false,
 				true,
 				false,
 				true
@@ -644,64 +644,6 @@ public class AppActivity extends Activity
 										((LinearLayout)baseButtonsExpanded[tmpbb]).addView(ssa, showSystemAppsParams);
 										((LinearLayout)baseButtonsExpanded[tmpbb]).addView(appList, appListParams);
 										((LinearLayout)baseButtonsExpanded[tmpbb]).addView(doneButton, doneButtonParams);
-									}
-
-									else
-
-									if(baseButtonsText[tmpbb].equals(TUT))
-									{
-										baseButtonsExpanded[tmpbb] = new LinearLayout(getApplicationContext());
-										((LinearLayout)baseButtonsExpanded[tmpbb]).setOrientation(LinearLayout.VERTICAL);
-										baseButtonsExpandedParams[tmpbb] = new RelativeLayout.LayoutParams(screenWidth, screenHeight);
-										//for future upgradibility
-										final int stepsTotal = 4;
-
-										final String[] textsStr = new String[]{ 
-											"To interact with your messages, you need to check your messenger in the \"TARGET APPS\"",
-											"To automatically reply users/senders or messages, add their name in \"AUTO SEND\".\nWARNING : the messages that are auto sent are made by the Bot and it relies on the data you provide, the messages may not be sound",
-											"To improve/add data to Bot, change ChatHead size etc, refer to \"SETTINGS\"",
-											"If the app does not work, do check \"NOT WORKING?\""
-										};
-
-										ListView stepList = new ListView(getApplicationContext());
-										BaseAdapter stepListAdapter = new BaseAdapter(){
-
-											@Override
-											public int getCount()
-											{
-												// TODO: Implement this method
-												return stepsTotal;
-											}
-
-											@Override
-											public Object getItem(int p1)
-											{
-												// TODO: Implement this method
-												return null;
-											}
-
-											@Override
-											public long getItemId(int p1)
-											{
-												// TODO: Implement this method
-												return 0;
-											}
-
-											@Override
-											public View getView(int i, View view, ViewGroup viewGroup)
-											{
-												// TODO: Implement this method
-												view = new TextView(getApplicationContext());
-												((TextView)view).setTextColor(Color.LTGRAY);
-												((TextView)view).setText("(" + String.valueOf(i+1) + ")" + "\n" + textsStr[i]);
-												//((TextView)view).setTextSize((int)(xdpi/div)/8);
-												return view;
-											}
-										};
-										stepList.setAdapter(stepListAdapter);
-
-										LinearLayout.LayoutParams stepListParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
-										((LinearLayout)baseButtonsExpanded[tmpbb]).addView(stepList, stepListParams);
 									}
 
 									else
@@ -2438,12 +2380,20 @@ public class AppActivity extends Activity
 
 									if(baseButtonsText[tmpbb].equals(Su))
 									{
-										final String appPackageName = getPackageName(); // getPackageName() from Context or Activity object
-										try {
-											startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + appPackageName)));
-										} catch (android.content.ActivityNotFoundException anfe) {
-											startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + appPackageName)));
-										}
+										Intent intent = new Intent(Intent.ACTION_SENDTO);
+										intent.setData(Uri.parse("mailto:"));
+										intent.putExtra(Intent.EXTRA_EMAIL, new String[] { "prajwal8074@gmail.com" });
+										intent.putExtra(Intent.EXTRA_SUBJECT, "Regarding HoloChat");
+
+										startActivity(Intent.createChooser(intent, "Email via..."));
+									}
+
+									else
+
+									if(baseButtonsText[tmpbb].equals(TUT))
+									{
+										Intent openUrlIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://holochat.pro"));
+										startActivity(openUrlIntent);
 									}
 								}
 							}
