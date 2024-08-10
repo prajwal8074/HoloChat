@@ -71,17 +71,38 @@ public class NotificationScannerService extends NotificationListenerService
 
 					if(notesToSend.size() > 0)
 					{
-						if(sendNotification(ChatHeadService.class, notesToSend.get(0)))
+						if(sendNotification(NotificationScannerService.class, notesToSend.get(0)))
 						{
-							startService(new Intent(this, ChatHeadService.class)
-										 .putExtra("type", "update")
-										 .putExtra("data", new String[][]{{"Bot"}, {"hello"}})
-										 .putExtra("icon", Icon.createWithResource(this, R.drawable.ic_logo_small))
-										 .putExtra("id", String.valueOf(new Random().nextInt()))
-										 //.putExtra("channel", "channel")
-										 .putExtra("bIcon", (Icon)null)
-										 .putExtra("image", (Bitmap)null)
-										 .putExtra("pkg", getPackageName()));
+							startService(new Intent(NotificationScannerService.this, ChatHeadService.class)
+							 .putExtra("type", "update")
+							 .putExtra("data", new String[][]{{"Bot"}, {"hello"}})
+							 .putExtra("icon", Icon.createWithResource(NotificationScannerService.this, R.drawable.ic_logo_small))
+							 .putExtra("id", String.valueOf(new Random().nextInt()))
+							 //.putExtra("channel", "channel")
+							 .putExtra("bIcon", (Icon)null)
+							 .putExtra("image", (Bitmap)null)
+							 .putExtra("pkg", getPackageName()));
+							/*new CountDownTimer(1000, 1000){
+								@Override
+								public void onTick(long p1)
+								{
+									// TODO: Implement this method
+								}
+
+								@Override
+								public void onFinish()
+								{
+									startService(new Intent(NotificationScannerService.this, ChatHeadService.class)
+									 .putExtra("type", "update")
+									 .putExtra("data", new String[][]{{"Bot"}, {"hello"}})
+									 .putExtra("icon", Icon.createWithResource(NotificationScannerService.this, R.drawable.ic_logo_small))
+									 .putExtra("id", String.valueOf(new Random().nextInt()))
+									 //.putExtra("channel", "channel")
+									 .putExtra("bIcon", (Icon)null)
+									 .putExtra("image", (Bitmap)null)
+									 .putExtra("pkg", getPackageName()));
+								}
+							}.start();*/
 							sbns.add(notesToSend.get(0));
 							try{
 								if(!Boolean.parseBoolean(readFromFile(keepNotificationsFile, "SEPARATOR_NEW_LINE")[0]))
@@ -113,6 +134,30 @@ public class NotificationScannerService extends NotificationListenerService
 						}
 						notesToSend.remove(0);
 					}
+
+					break;
+
+				case "restartMe" :
+
+					created = false;
+					destroyed = true;
+					updated = true;
+
+					new CountDownTimer(1000, 1000){
+						@Override
+						public void onTick(long p1)
+						{
+							// TODO: Implement this method
+						}
+
+						@Override
+						public void onFinish()
+						{
+							initService(ChatHeadService.class);
+							updated = false;
+							notesToSend = sbns;
+						}
+					}.start();
 
 					break;
 

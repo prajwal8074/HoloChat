@@ -216,37 +216,28 @@ public class ChatHeadService extends Service
 			{
 				if(mWindowManager == null)
 				{
-					//creating a notification to run the service in foreground
-					notificationId = 42069;
-					Intent notificationIntent = new Intent(this, AppActivity.class);
-					notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-					notification = new Notification.Builder(this)
-						.setContentTitle("0 messages")
-						.setContentText("")
-						.setSubText("0 spams")
-						.setTicker("Chat Head Active")
-						.setSmallIcon(R.drawable.ic_logo_transparent)
-						//.setLargeIcon(Icon.createWithResource(this, R.drawable.ic_logo))
-						.setColor(Color.argb(Integer.MAX_VALUE, 0, 255, 251))
-						.setContentIntent(PendingIntent.getActivity(this, 0, 
-							notificationIntent, PendingIntent.FLAG_MUTABLE))
-						.setPriority(Notification.PRIORITY_MAX);
-					
-					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-					{
-						String CHANNEL_ID = getPackageName().replace(".", "_");// The id of the channel. 
-						notification.setChannelId(CHANNEL_ID);
-						NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, "Chat Head Active Notification", NotificationManager.IMPORTANCE_MAX);	
-						NotificationManager mNotificationManager =
-							(NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-						mNotificationManager.createNotificationChannel(mChannel);
-					}
-			        foregroundType = 0;
-			        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-			            foregroundType = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE;
-			        }
-					startForeground(notificationId, notification.build(), foregroundType);
+					new CountDownTimer(1000, 1000){
 
+						@Override
+						public void onTick(long p1)
+						{
+							// TODO: Implement this method
+						}
+
+						@Override
+						public void onFinish()
+						{
+							if(senders == null && messages == null)
+							{
+								stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+							}
+							else
+							{
+								if(notification==null)
+									pushNotification();
+							}
+						}
+					}.start();
 					/*MobileAds.initialize(ChatHeadService.this, new OnInitializationCompleteListener(){
             
 						@Override
@@ -4133,11 +4124,9 @@ public class ChatHeadService extends Service
 		int sendRemovesTotal = 0;
 		for(int s = 0;s < senders.size();s++)
 		{
-			if(autoSends.get(s) || sendButtonClicks.get(s))
+			if(sendButtonClicks.get(s))
 			{
 				sendsTotal++;
-				if(autoSends.get(s))
-					autoSendsTotal++;
 				if(chatRemoves.get(s))
 					sendRemovesTotal++;
 			}
@@ -4176,8 +4165,45 @@ public class ChatHeadService extends Service
 		}
 	}
 
+	private void pushNotification()
+	{
+		//creating a notification to run the service in foreground
+		notificationId = 42069;
+		Intent notificationIntent = new Intent(ChatHeadService.this, AppActivity.class);
+		notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+		notification = new Notification.Builder(ChatHeadService.this)
+			.setContentTitle("0 messages")
+			.setContentText("")
+			.setSubText("0 spams")
+			.setTicker("Chat Head Active")
+			.setSmallIcon(R.drawable.ic_logo_transparent)
+			//.setLargeIcon(Icon.createWithResource(this, R.drawable.ic_logo))
+			.setColor(Color.argb(Integer.MAX_VALUE, 0, 255, 251))
+			.setContentIntent(PendingIntent.getActivity(ChatHeadService.this, 0, 
+				notificationIntent, PendingIntent.FLAG_MUTABLE))
+			.setPriority(Notification.PRIORITY_MAX);
+		
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+		{
+			String CHANNEL_ID = getPackageName().replace(".", "_");// The id of the channel. 
+			notification.setChannelId(CHANNEL_ID);
+			NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, "Chat Head Active Notification", NotificationManager.IMPORTANCE_MAX);	
+			NotificationManager mNotificationManager =
+				(NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+			mNotificationManager.createNotificationChannel(mChannel);
+		}
+        foregroundType = 0;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            foregroundType = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE;
+        }
+		startForeground(notificationId, notification.build(), foregroundType);
+	}
+
 	private void refreshNotification()
 	{
+		if(notification==null)
+			pushNotification();
+
 		int[] counts = getSendCounts();
 		int sendsTotal = counts[0];
 		int autoSendsTotal = counts[1];
@@ -4682,35 +4708,11 @@ public class ChatHeadService extends Service
 
 	public void restartSelf()
 	{
-		created = false;
-		updated = false;
-		visible = false;
-
-		Intent initIntent = new Intent(this, ChatHeadService.class);
-		initIntent.putExtra("type", "init");
+		Intent initIntent = new Intent(this, NotificationScannerService.class);
+		initIntent.putExtra("type", "restartMe");
 		startService(initIntent);
 
-		Intent restartIntent = new Intent(this, ChatHeadService.class);
-		restartIntent.putExtra("type", "restart");
-		restartIntent.putExtra("pkgs", pkgs);
-		restartIntent.putExtra("ids", ids);
-		restartIntent.putExtra("senders", senders);
-		restartIntent.putExtra("messages", messages);
-		restartIntent.putExtra("icons", icons);
-		restartIntent.putExtra("sendTos", sendTos);
-		restartIntent.putExtra("replies", replies);
-		restartIntent.putExtra("senderColors", senderColors);
-		restartIntent.putExtra("bIcons", buttonIcons);
-		restartIntent.putExtra("bTexts", buttonTexts);
-		restartIntent.putExtra("images", imgs);
-		restartIntent.putExtra("autoSends", autoSends);
-		restartIntent.putExtra("sendButtonClicks", sendButtonClicks);
-		restartIntent.putExtra("seens", seens);
-		restartIntent.putExtra("chatRemoves", chatRemoves);
-		restartIntent.putExtra("chatSpams", chatSpams);
-		restartIntent.putExtra("chatNotSpams", chatNotSpams);
-		restartIntent.putExtra("chatListStates", chatListStates);
-		startService(restartIntent);
+		stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
 	}
 
 	@Override
