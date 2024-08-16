@@ -10,6 +10,7 @@ import android.service.notification.NotificationListenerService;
 import java.io.*;
 import java.util.*;
 import androidx.core.app.NotificationCompat;
+import com.google.firebase.analytics.FirebaseAnalytics;
 
 //import android.widget.Toast;
 
@@ -56,6 +57,8 @@ public class NotificationScannerService extends NotificationListenerService
 		"voice message",
 		"message"
 	};
+
+	private FirebaseAnalytics mFirebaseAnalytics;
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId)
@@ -139,24 +142,24 @@ public class NotificationScannerService extends NotificationListenerService
 
 				case "restartMe" :
 
-					created = false;
-					destroyed = true;
-					updated = true;
-
-					new CountDownTimer(1000, 1000){
+					new CountDownTimer(5000, 1){
 						@Override
 						public void onTick(long p1)
 						{
-							// TODO: Implement this method
+							if(!isMyServiceRunning(ChatHeadService.class))
+							{
+								destroyed = true;
+							 	updated = true;
+								initService(ChatHeadService.class);
+								updated = false;
+								notesToSend = sbns;
+								cancel();
+							}
 						}
 
 						@Override
 						public void onFinish()
-						{
-							initService(ChatHeadService.class);
-							updated = false;
-							notesToSend = sbns;
-						}
+						{}
 					}.start();
 
 					break;
@@ -165,6 +168,16 @@ public class NotificationScannerService extends NotificationListenerService
 
 					destroyed = true;
 					created = false;
+					int sentsCount = intent.getIntExtra("sentsCount", 0);
+					int spamsCount = intent.getIntExtra("spamsCount", 0);
+					if(mFirebaseAnalytics != null)
+					{
+						Bundle bundle = new Bundle();
+						bundle.putInt("messages_count", sbns.size());
+						bundle.putInt("replies_count", sentsCount);
+						bundle.putInt("spams_count", spamsCount);
+						mFirebaseAnalytics.logEvent("chat_head_closed", bundle);
+					}
 					sbns = new ArrayList<StatusBarNotification>();
 
 					break;
@@ -187,7 +200,7 @@ public class NotificationScannerService extends NotificationListenerService
 					{
 						boolean isReplyActive = false;
 						String id = intent.getStringExtra("id");
-						int chatIndex =intent.getIntExtra("chatIndex", -1);
+						int chatIndex = intent.getIntExtra("chatIndex", -1);
 						String sender = intent.getStringExtra("sender");
 						String message = intent.getStringExtra("message");
 						String reply = intent.getStringExtra("reply");
@@ -607,7 +620,8 @@ public class NotificationScannerService extends NotificationListenerService
 		// TODO: Implement this method
 		super.onListenerConnected(); 
 		NLConnected = true;
-
+		mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+		
 			/*Intent launchIntent = new Intent(getApplicationContext(), AppActivity.class);
 			launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
@@ -736,6 +750,16 @@ public class NotificationScannerService extends NotificationListenerService
 		// TODO: Implement this method
 		super.onListenerDisconnected();
 		NLConnected = false;
+	}
+
+	private boolean isMyServiceRunning(Class<?> serviceClass) {
+	    ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+	    for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+	        if (serviceClass.getName().equals(service.service.getClassName())) {
+	            return true;
+	        }
+	    }
+	    return false;
 	}
 
 	public String[][] getNotificationData(StatusBarNotification sbn)

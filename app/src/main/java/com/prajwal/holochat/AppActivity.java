@@ -732,12 +732,30 @@ public class AppActivity extends Activity
 																	PackageManager pm = getPackageManager();
 																	pm.setComponentEnabledSetting(new ComponentName(getApplicationContext(), NotificationScannerService.class),
 																								  PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+																	Toast.makeText(getApplicationContext(), "Restarting...", Toast.LENGTH_LONG).show();
+																	new CountDownTimer(5000, 500){
 
-																	pm.setComponentEnabledSetting(new ComponentName(getApplicationContext(), NotificationScannerService.class),
+																		@Override
+																		public void onTick(long p1)
+																		{
+																			if(!isMyServiceRunning(NotificationScannerService.class))
+																			{
+																				pm.setComponentEnabledSetting(new ComponentName(getApplicationContext(), NotificationScannerService.class),
+																											  PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+																				Toast.makeText(getApplicationContext(), "Restarted", Toast.LENGTH_SHORT).show();
+																				cancel();
+																			}
+																		}
+
+																		@Override
+																		public void onFinish()
+																		{
+																		}
+																	}.start();
+																	/*pm.setComponentEnabledSetting(new ComponentName(getApplicationContext(), NotificationScannerService.class),
 																								  PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
-																	Toast.makeText(getApplicationContext(), "Restarted", Toast.LENGTH_SHORT).show();
-																}
-																else
+																	Toast.makeText(getApplicationContext(), "Restarted", Toast.LENGTH_SHORT).show();*/
+																}else
 																	startActivity(bIntents[i]);
 															}
 														});
@@ -2412,6 +2430,16 @@ public class AppActivity extends Activity
 
 		}catch(Exception e)
 		{}//{Toast.makeText(this, e.toString()+"\n\n"+e.getStackTrace()[0].toString(), Toast.LENGTH_LONG).show();}
+	}
+
+	private boolean isMyServiceRunning(Class<?> serviceClass) {
+	    ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+	    for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+	        if (serviceClass.getName().equals(service.service.getClassName())) {
+	            return true;
+	        }
+	    }
+	    return false;
 	}
 
 	private void refreshAbstracts()

@@ -57,13 +57,15 @@ public class ChatHeadService extends Service
 	RelativeLayout mBlackBackView;
 	RelativeLayout chatListView;
 	ImageView chatHead;
+	TextView chatCircleRemoves;
 	TextView chatCircleMessages;
-	TextView chatCircleReplies;
 	ImageView iconProjection;
 	ListView iconList;
 	LinearLayout chatProjectionDown;
 	LinearLayout chatProjectionUp;
 	ListView chatList;
+	RelativeLayout.LayoutParams chatCircleMessagesParams;
+	RelativeLayout.LayoutParams chatCircleRemovesParams;
 	WindowManager.LayoutParams mBlackBackViewParams;
 	WindowManager.LayoutParams mExpandedViewParams;
 	WindowManager.LayoutParams mRemoveViewParams;
@@ -95,6 +97,7 @@ public class ChatHeadService extends Service
 	boolean isToLeft = false;
 	boolean isToTop = true;
 	boolean directReply = false;
+	boolean restarted = false;
 
 	//standard measures
 	final long timeTotal = 500;
@@ -227,8 +230,9 @@ public class ChatHeadService extends Service
 						@Override
 						public void onFinish()
 						{
-							if(senders == null && messages == null)
+							if(senders == null || !visible)
 							{
+								restartSelf();
 								stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
 							}
 							else
@@ -512,7 +516,8 @@ public class ChatHeadService extends Service
 																	replies.set(chatIndex, "");
 																	if(visible)
 																		if(showingChat)
-																			replyViews.get(chatViewIndex).setText("");
+																			if(replyViews != null && replyViews.get(chatViewIndex) != null)
+																				replyViews.get(chatViewIndex).setText("");
 																}
 															});
 														}
@@ -656,8 +661,8 @@ public class ChatHeadService extends Service
 									if(chatHead.getAlpha() == 1f)
 									{
 										sleepShrinkTimer.start();
+										chatCircleRemoves.setVisibility(View.INVISIBLE);
 										chatCircleMessages.setVisibility(View.INVISIBLE);
-										chatCircleReplies.setVisibility(View.INVISIBLE);
 									}
 								}
 							}
@@ -840,24 +845,30 @@ public class ChatHeadService extends Service
 					mChatHeadView.addView(chatHead, chatHeadParams);
 
 					//the circles showing number of replies
-					chatCircleReplies = new TextView(this);
-					chatCircleReplies.setBackgroundResource(R.drawable.circle_filled_blue);
-					chatCircleReplies.setTextColor(Color.WHITE);
-					chatCircleReplies.setTextSize(chatHeadWidth/15);
-					chatCircleReplies.setText(" 0");
-					RelativeLayout.LayoutParams chatCircleRepliesParams = new RelativeLayout.LayoutParams(chatHeadWidth/4, chatHeadHeight/4);
-					chatCircleRepliesParams.setMargins(0, 0, chatHeadWidth - chatHeadWidth/4, chatHeadHeight - chatHeadHeight/4);
-					mChatHeadView.addView(chatCircleReplies, chatCircleRepliesParams);
-
-					//the same but with messages
 					chatCircleMessages = new TextView(this);
 					chatCircleMessages.setBackgroundResource(R.drawable.circle_filled_red);
 					chatCircleMessages.setTextColor(Color.WHITE);
 					chatCircleMessages.setTextSize(chatHeadWidth/15);
 					chatCircleMessages.setText(" 0");
-					RelativeLayout.LayoutParams chatCircleMessagesParams = new RelativeLayout.LayoutParams(chatHeadWidth/4, chatHeadHeight/4);
-					chatCircleMessagesParams.setMargins(chatHeadWidth - chatHeadWidth/4, 0, 0, chatHeadHeight - chatHeadHeight/4);
+					chatCircleMessagesParams = new RelativeLayout.LayoutParams(chatHeadWidth/4, chatHeadHeight/4);
+					if(!isToLeft)
+						chatCircleMessagesParams.setMargins(0, 0, chatHeadWidth - chatHeadWidth/4, chatHeadHeight - chatHeadHeight/4);
+					else
+						chatCircleMessagesParams.setMargins(chatHeadWidth - chatHeadWidth/4, 0, 0, chatHeadHeight - chatHeadHeight/4);
 					mChatHeadView.addView(chatCircleMessages, chatCircleMessagesParams);
+
+					//the same but with messages
+					chatCircleRemoves = new TextView(this);
+					chatCircleRemoves.setBackgroundResource(R.drawable.circle_filled_grey);
+					chatCircleRemoves.setTextColor(Color.WHITE);
+					chatCircleRemoves.setTextSize(chatHeadWidth/15);
+					chatCircleRemoves.setText(" 0");
+					chatCircleRemovesParams = new RelativeLayout.LayoutParams(chatHeadWidth/4, chatHeadHeight/4);
+					if(isToLeft)
+						chatCircleRemovesParams.setMargins(0, 0, chatHeadWidth - chatHeadWidth/4, chatHeadHeight - chatHeadHeight/4);
+					else
+						chatCircleRemovesParams.setMargins(chatHeadWidth - chatHeadWidth/4, 0, 0, chatHeadHeight - chatHeadHeight/4);
+					mChatHeadView.addView(chatCircleRemoves, chatCircleRemovesParams);
 
 					isExpanded = false;
 
@@ -924,8 +935,8 @@ public class ChatHeadService extends Service
 											yPrev[i] = initialTouchY;
 										}
 										
+										chatCircleRemoves.setVisibility(View.INVISIBLE);
 										chatCircleMessages.setVisibility(View.INVISIBLE);
-										chatCircleReplies.setVisibility(View.INVISIBLE);
 
 										chatHead.setX(0);
 
@@ -977,8 +988,8 @@ public class ChatHeadService extends Service
 															onChatClose(chatInFocus);
 														}
 														chatHead.setImageResource(R.drawable.ic_logo);
+														chatCircleRemoves.setVisibility(View.INVISIBLE);
 														chatCircleMessages.setVisibility(View.INVISIBLE);
-														chatCircleReplies.setVisibility(View.INVISIBLE);
 													}
 
 													haptic(10, 255);
@@ -1198,9 +1209,6 @@ public class ChatHeadService extends Service
 										final boolean willBeToLeft = mChatHeadViewParams.x + chatHeadWidth / 2 + (xV / 6) * stepsTotal < screenWidth / 2;
 										final boolean willBeToTop = mChatHeadViewParams.y + chatHeadHeight / 2 + (yV / 6) * stepsTotal < screenHeight / 2;
 										
-										chatCircleMessages.setVisibility(View.VISIBLE);
-										chatCircleReplies.setVisibility(View.VISIBLE);
-
 										//WARNING XXXXXX : Lotta unreasonable calculation below
 
 										final int dp = 4;//Resources.getSystem().getDisplayMetrics().density;
@@ -1225,8 +1233,8 @@ public class ChatHeadService extends Service
 											{
 												sleepTimer.cancel();
 												sleepShrinkTimer.cancel();
+												chatCircleRemoves.setVisibility(View.INVISIBLE);
 												chatCircleMessages.setVisibility(View.INVISIBLE);
-												chatCircleReplies.setVisibility(View.INVISIBLE);
 												chatHead.setImageResource(R.drawable.ic_close_round_small);
 												chatHead.setAlpha(0.5f);
 												mChatHeadViewParams.x = willBeToLeft ? 0 : screenWidth - chatHeadWidth;
@@ -1855,7 +1863,7 @@ public class ChatHeadService extends Service
 																														seens.set(chatIndex, seens.get(chatIndex) != null);
 
 																														try{
-																															sent.set(chatViewIndex, sendButtonClicks.get(chatIndex) || autoSends.get(chatIndex));
+																															sent.set(chatViewIndex, sendButtonClicks.get(chatIndex));
 																														}catch(Exception e){
 																															chatViewsCount = chatInFocus == CHAT_ALL? (senders.size() - chatRemovesCount) : (chatInFocus == CHAT_ALL-1? chatRemovesCount : 1);
 																															replyViews = new ArrayList<TextView>();
@@ -1875,7 +1883,7 @@ public class ChatHeadService extends Service
 																																sent.add(null);
 																															}
 
-																															sent.set(chatViewIndex, sendButtonClicks.get(chatIndex) || autoSends.get(chatIndex));
+																															sent.set(chatViewIndex, sendButtonClicks.get(chatIndex));
 																														}
 																														final LinearLayout replyLayout = new LinearLayout(getApplicationContext());
 																														replyLayout.setOrientation(LinearLayout.VERTICAL);
@@ -2079,24 +2087,24 @@ public class ChatHeadService extends Service
 
 																																	if(!directReply && !senders.get(chatViewIndex).equals("Bot"))
 																																	{
-																																							if(showingChat)
-																																								chatListStates.set(chatInFocus+2, chatList.onSaveInstanceState());
-																																							chatListView.setVisibility(View.GONE); //chatList.setAdapter(null);
-																																							isExpanded = false;
-																																							mBlackBackView.setVisibility(View.GONE);
-																																							iconList.setVisibility(View.GONE); iconList.setAdapter(null);
-																																							iconProjection.setVisibility(View.GONE);
-																																							chatProjectionUp.setVisibility(View.GONE);
-																																							chatProjectionDown.setVisibility(View.GONE);
-																																							if(showingChat)
-																																							{
-																																								showingChat = false;
-																																								onChatClose(chatInFocus);
-																																							}
-																																							chatHead.setImageResource(R.drawable.ic_logo);
-																																							chatHead.setAlpha(1f);
+																																		if(showingChat)
+																																			chatListStates.set(chatInFocus+2, chatList.onSaveInstanceState());
+																																		chatListView.setVisibility(View.GONE); //chatList.setAdapter(null);
+																																		isExpanded = false;
+																																		mBlackBackView.setVisibility(View.GONE);
+																																		iconList.setVisibility(View.GONE); iconList.setAdapter(null);
+																																		iconProjection.setVisibility(View.GONE);
+																																		chatProjectionUp.setVisibility(View.GONE);
+																																		chatProjectionDown.setVisibility(View.GONE);
+																																		if(showingChat)
+																																		{
+																																			showingChat = false;
+																																			onChatClose(chatInFocus);
+																																		}
+																																		chatHead.setImageResource(R.drawable.ic_logo);
+																																		chatHead.setAlpha(1f);
 
-																																							refreshChatCircles();
+																																		refreshChatCircles();
 																																	}
 																																}
 																															}
@@ -2113,7 +2121,7 @@ public class ChatHeadService extends Service
 																																		if(event.getAction() == MotionEvent.ACTION_DOWN
 																																		   )//|| view.isPressed())
 																																		{
-																																			sent.set(chatViewIndex, sendButtonClicks.get(chatIndex) || autoSends.get(chatIndex));
+																																			sent.set(chatViewIndex, sendButtonClicks.get(chatIndex));
 																																			String replyStr = !sent.get(chatViewIndex)? replyView.getText().toString() : MESSAGE_EMPTY;
 
 																																			if(!(replyStr.equals(PENDING) || replyStr.equals(LOADING)))
@@ -2198,7 +2206,7 @@ public class ChatHeadService extends Service
 																																public void onClick(View view)
 																																{
 																																	// TODO: Implement this method
-																																	sent.set(chatViewIndex, sendButtonClicks.get(chatIndex) || autoSends.get(chatIndex));
+																																	sent.set(chatViewIndex, sendButtonClicks.get(chatIndex));
 																																	String replyStr = !sent.get(chatViewIndex)? replyView.getText().toString() : MESSAGE_EMPTY;
 																																	
 																																	if(!(replyStr.equals(PENDING) || replyStr.equals(LOADING)))
@@ -2835,7 +2843,7 @@ public class ChatHeadService extends Service
 																												int chatIndex = chatInFocus >= CHAT_ALL? getChatIndexNoRemoves(chatInFocus <= CHAT_ALL? chatViewIndex : chatInFocus, 0, senders.size()) : getChatIndexOfRemoves(chatInFocus <= CHAT_ALL? chatViewIndex : chatInFocus, 0, senders.size());
 																												if(chatIndex < senders.size())
 																												{
-																													sent.set(chatViewIndex, sendButtonClicks.get(chatIndex) || autoSends.get(chatIndex));
+																													sent.set(chatViewIndex, sendButtonClicks.get(chatIndex));
 
 																													if(!sent.get(chatViewIndex))
 																													{
@@ -3004,8 +3012,8 @@ public class ChatHeadService extends Service
 											{
 												voluntaryDestroing = true;
 
-												chatCircleReplies.setVisibility(View.GONE);
 												chatCircleMessages.setVisibility(View.GONE);
+												chatCircleRemoves.setVisibility(View.GONE);
 
 												/*new Thread(new Runnable(){
 
@@ -3199,6 +3207,22 @@ public class ChatHeadService extends Service
 																	chatHead.setScaleX(1f);
 																else
 																	chatHead.setScaleX(-1f);
+																
+																if(!isExpanded && !moving)
+																{
+																	chatCircleMessages.setVisibility(View.VISIBLE);
+																	chatCircleRemoves.setVisibility(View.VISIBLE);
+																}
+
+																if(!isToLeft)
+																{
+																	chatCircleMessagesParams.setMargins(0, 0, chatHeadWidth - chatHeadWidth/4, chatHeadHeight - chatHeadHeight/4);
+																	chatCircleRemovesParams.setMargins(chatHeadWidth - chatHeadWidth/4, 0, 0, chatHeadHeight - chatHeadHeight/4);
+																}else
+																{
+																	chatCircleMessagesParams.setMargins(chatHeadWidth - chatHeadWidth/4, 0, 0, chatHeadHeight - chatHeadHeight/4);
+																	chatCircleRemovesParams.setMargins(0, 0, chatHeadWidth - chatHeadWidth/4, chatHeadHeight - chatHeadHeight/4);
+																}
 
 																new CountDownTimer(timeTotal, delta){
 																	@Override
@@ -3233,6 +3257,21 @@ public class ChatHeadService extends Service
 														mChatHeadViewParams.x += dis / stepsTotal;
 
 														mWindowManager.updateViewLayout(mChatHeadView, mChatHeadViewParams); 
+
+														if(!isExpanded && !moving)
+														{
+															chatCircleMessages.setVisibility(View.VISIBLE);
+															chatCircleRemoves.setVisibility(View.VISIBLE);
+														}
+														if(!isToLeft)
+														{
+															chatCircleMessagesParams.setMargins(0, 0, chatHeadWidth - chatHeadWidth/4, chatHeadHeight - chatHeadHeight/4);
+															chatCircleRemovesParams.setMargins(chatHeadWidth - chatHeadWidth/4, 0, 0, chatHeadHeight - chatHeadHeight/4);
+														}else
+														{
+															chatCircleMessagesParams.setMargins(chatHeadWidth - chatHeadWidth/4, 0, 0, chatHeadHeight - chatHeadHeight/4);
+															chatCircleRemovesParams.setMargins(0, 0, chatHeadWidth - chatHeadWidth/4, chatHeadHeight - chatHeadHeight/4);
+														}
 
 														new CountDownTimer(timeTotal, delta){
 
@@ -3293,6 +3332,21 @@ public class ChatHeadService extends Service
 																chatHead.setScaleX(1f);
 															else
 																chatHead.setScaleX(-1f);
+
+															if(!isExpanded && !moving)
+															{
+																chatCircleMessages.setVisibility(View.VISIBLE);
+																chatCircleRemoves.setVisibility(View.VISIBLE);
+															}
+															if(!isToLeft)
+															{
+																chatCircleMessagesParams.setMargins(0, 0, chatHeadWidth - chatHeadWidth/4, chatHeadHeight - chatHeadHeight/4);
+																chatCircleRemovesParams.setMargins(chatHeadWidth - chatHeadWidth/4, 0, 0, chatHeadHeight - chatHeadHeight/4);
+															}else
+															{
+																chatCircleMessagesParams.setMargins(chatHeadWidth - chatHeadWidth/4, 0, 0, chatHeadHeight - chatHeadHeight/4);
+																chatCircleRemovesParams.setMargins(0, 0, chatHeadWidth - chatHeadWidth/4, chatHeadHeight - chatHeadHeight/4);
+															}
 														}
 													}.start();
 												}
@@ -3330,7 +3384,11 @@ public class ChatHeadService extends Service
 															@Override
 															public void onFinish()
 															{
-																// TODO: Implement this method
+																if(!isExpanded && !moving)
+																{
+																	chatCircleMessages.setVisibility(View.VISIBLE);
+																	chatCircleRemoves.setVisibility(View.VISIBLE);
+																}
 															}
 
 														}.start();
@@ -3363,6 +3421,11 @@ public class ChatHeadService extends Service
 															// TODO: Implement this method
 															mChatHeadViewParams.y = isToTop ? 0 : screenHeight - chatHeadHeight;
 															mWindowManager.updateViewLayout(mChatHeadView, mChatHeadViewParams);
+															if(!isExpanded && !moving)
+															{
+																chatCircleMessages.setVisibility(View.VISIBLE);
+																chatCircleRemoves.setVisibility(View.VISIBLE);
+															}
 														}
 
 													}.start();
@@ -3502,20 +3565,20 @@ public class ChatHeadService extends Service
 						//Toast.makeText(getApplicationContext(), "data[SENDER], data[MESSAGE] not null", Toast.LENGTH_LONG).show();
 						if(isShrinked)
 						{
-						chatHead.setX(0);
+							chatHead.setX(0);
 
-						chatHead.setAlpha(1f);
+							chatHead.setAlpha(1f);
 
-						if(isToLeft)
-							chatHead.setScaleX(1f);
-						else
-							chatHead.setScaleX(-1f);
+							if(isToLeft)
+								chatHead.setScaleX(1f);
+							else
+								chatHead.setScaleX(-1f);
 
-						chatHead.setScaleY(1f);
+							chatHead.setScaleY(1f);
 
-						visible = true;
-						isShrinked = false;
-						sleepTimer.start();
+							visible = true;
+							isShrinked = false;
+							sleepTimer.start();
 						}
 
 						for(int i = 0;i < data[SENDER].length;i++)
@@ -3945,7 +4008,7 @@ public class ChatHeadService extends Service
 				}
 			}
 
-			else
+			/*else
 
 			if(type.equals("restart"))
 			{
@@ -3991,7 +4054,7 @@ public class ChatHeadService extends Service
 				onChatDataChange();
 
 				refreshNotification();
-			}
+			}*/
 
 			else
 
@@ -4057,7 +4120,8 @@ public class ChatHeadService extends Service
 				if(showingChat)//chatList.getAdapter() != null)
 				{
 					restoreReplies();
-					((BaseAdapter)chatList.getAdapter()).notifyDataSetChanged();
+					if(chatList.getAdapter() != null)
+						((BaseAdapter)chatList.getAdapter()).notifyDataSetChanged();
 				}
 				if(iconList.getAdapter() != null)
 					((BaseAdapter)iconList.getAdapter()).notifyDataSetChanged();
@@ -4117,50 +4181,45 @@ public class ChatHeadService extends Service
 		onChatDataChange();
 	}
 
-	private int[] getSendCounts()
+	private int getSpamsCount()
 	{
-		int sendsTotal = 0;
-		int autoSendsTotal = 0;
-		int sendRemovesTotal = 0;
-		for(int s = 0;s < senders.size();s++)
-		{
-			if(sendButtonClicks.get(s))
+		int spamsCount = 0;
+		//user defined
+		for(boolean isSpam : chatSpams)
+			if(isSpam)
 			{
-				sendsTotal++;
-				if(chatRemoves.get(s))
-					sendRemovesTotal++;
+				spamsCount++;
 			}
-		}
-
-		return new int[]{sendsTotal, autoSendsTotal, sendRemovesTotal};
+		//Model predicted
+		for(Boolean notSpam : chatNotSpams)
+			if(notSpam!=null && !notSpam)
+			{
+				spamsCount++;
+			}
+		return spamsCount;
 	}
 
 	private void refreshChatCircles()
 	{
-		int[] counts = getSendCounts();
-		int sendsTotal = counts[0];
-		int autoSendsTotal = counts[1];
-		int sendRemovesTotal = counts[2];
-
-		if(chatCircleMessages != null && chatCircleReplies != null)
+		if(chatCircleRemoves != null && chatCircleMessages != null)
 		{
 			chatCircleMessages.setText((senders.size() - chatRemovesCount) < 10? " " + String.valueOf((senders.size() - chatRemovesCount)) : (senders.size() - chatRemovesCount) < 1000? String.valueOf((senders.size() - chatRemovesCount)) : (senders.size() - chatRemovesCount) < 1000000? String.valueOf((senders.size() - chatRemovesCount)/1000f).substring(0, 3) + "K" : (senders.size() - chatRemovesCount) < 1000000000? String.valueOf((senders.size() - chatRemovesCount)/1000000f).substring(0, 3) + "M" : String.valueOf((senders.size() - chatRemovesCount)/1000000000f).substring(0, 3) + "B");
-			chatCircleReplies.setText((sendsTotal - sendRemovesTotal) < 10? " " + String.valueOf((sendsTotal - sendRemovesTotal)) : (sendsTotal - sendRemovesTotal) < 1000? String.valueOf((sendsTotal - sendRemovesTotal)) : (sendsTotal - sendRemovesTotal) < 1000000? String.valueOf((sendsTotal - sendRemovesTotal)/1000f).substring(0, 3) + "K" : (sendsTotal - sendRemovesTotal) < 1000000000? String.valueOf((sendsTotal - sendRemovesTotal)/1000000f).substring(0, 3) + "M" : String.valueOf((sendsTotal - sendRemovesTotal)/1000000000f).substring(0, 3) + "B");
+			chatCircleRemoves.setText((chatRemovesCount) < 10? " " + String.valueOf((chatRemovesCount)) : (chatRemovesCount) < 1000? String.valueOf((chatRemovesCount)) : (chatRemovesCount) < 1000000? String.valueOf((chatRemovesCount)/1000f).substring(0, 3) + "K" : (chatRemovesCount) < 1000000000? String.valueOf((chatRemovesCount)/1000000f).substring(0, 3) + "M" : String.valueOf((chatRemovesCount)/1000000000f).substring(0, 3) + "B");
 
 			if((senders.size() - chatRemovesCount) > 99)
 				chatCircleMessages.setTextSize(chatHeadWidth/25);
 			else
 				chatCircleMessages.setTextSize(chatHeadWidth/15);
 			
-			if((sendsTotal - sendRemovesTotal) > 99)
-				chatCircleReplies.setTextSize(chatHeadWidth/25);
+			if((chatRemovesCount) > 99)
+				chatCircleRemoves.setTextSize(chatHeadWidth/25);
 			else
-				chatCircleReplies.setTextSize(chatHeadWidth/15);
+				chatCircleRemoves.setTextSize(chatHeadWidth/15);
 
 			if(!isExpanded && !moving)
 			{
-				chatCircleReplies.setVisibility(View.VISIBLE);
 				chatCircleMessages.setVisibility(View.VISIBLE);
+				chatCircleRemoves.setVisibility(View.VISIBLE);
 			}
 		}
 	}
@@ -4204,10 +4263,6 @@ public class ChatHeadService extends Service
 		if(notification==null)
 			pushNotification();
 
-		int[] counts = getSendCounts();
-		int sendsTotal = counts[0];
-		int autoSendsTotal = counts[1];
-
 		String notifyStrMsg = String.valueOf((senders != null) ? senders.size()-chatRemovesCount : 0) + " " + "messages";
 		String notifyStrTxt = "from";
 		if(senders != null)
@@ -4215,17 +4270,7 @@ public class ChatHeadService extends Service
 				if(!chatRemoves.get(s))
 					notifyStrTxt += " " + senders.get(s) + ",";
 		notifyStrTxt = notifyStrTxt.substring(0, notifyStrTxt.length()-1);
-		int spamsCount = 0;
-		for(boolean isSpam : chatSpams)
-			if(isSpam)
-			{
-				spamsCount++;
-			}
-		for(Boolean notSpam : chatNotSpams)
-			if(notSpam!=null && !notSpam)
-			{
-				spamsCount++;
-			}
+		int spamsCount = getSpamsCount();
 		String notifyStrRly = String.valueOf(spamsCount) + " " + "spams";
 		notification.setContentText(notifyStrTxt);
 		notification.setContentTitle(notifyStrMsg);
@@ -4708,11 +4753,17 @@ public class ChatHeadService extends Service
 
 	public void restartSelf()
 	{
-		Intent initIntent = new Intent(this, NotificationScannerService.class);
-		initIntent.putExtra("type", "restartMe");
-		startService(initIntent);
+		if(!restarted)
+		{
+			restarted = true;
+			PackageManager pm = getPackageManager();
+			pm.setComponentEnabledSetting(new ComponentName(getApplicationContext(), NotificationScannerService.class),
+										  PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
 
-		stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+			pm.setComponentEnabledSetting(new ComponentName(getApplicationContext(), NotificationScannerService.class),
+										  PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP);
+			stopForeground(STOP_FOREGROUND_REMOVE); stopSelf();
+		}
 	}
 
 	@Override
@@ -4751,8 +4802,8 @@ public class ChatHeadService extends Service
 			
 			if(isShrinked)
 			{
+				chatCircleRemoves.setVisibility(View.GONE);
 				chatCircleMessages.setVisibility(View.GONE);
-				chatCircleReplies.setVisibility(View.GONE);
 				sleepShrinkTimer.onFinish();
 			}
 
@@ -4768,8 +4819,20 @@ public class ChatHeadService extends Service
 			chatHead.setScaleX(isToLeft? 1f : -1f);
 			chatHead.setScaleY(1f);
 			chatHead.setX(0);
-			chatCircleMessages.setVisibility(View.VISIBLE);
-			chatCircleReplies.setVisibility(View.VISIBLE);
+			if(!isExpanded && !moving)
+			{
+				chatCircleMessages.setVisibility(View.VISIBLE);
+				chatCircleRemoves.setVisibility(View.VISIBLE);
+			}
+			if(!isToLeft)
+			{
+				chatCircleMessagesParams.setMargins(0, 0, chatHeadWidth - chatHeadWidth/4, chatHeadHeight - chatHeadHeight/4);
+				chatCircleRemovesParams.setMargins(chatHeadWidth - chatHeadWidth/4, 0, 0, chatHeadHeight - chatHeadHeight/4);
+			}else
+			{
+				chatCircleMessagesParams.setMargins(chatHeadWidth - chatHeadWidth/4, 0, 0, chatHeadHeight - chatHeadHeight/4);
+				chatCircleRemovesParams.setMargins(0, 0, chatHeadWidth - chatHeadWidth/4, chatHeadHeight - chatHeadHeight/4);
+			}
 			sleepTimer.start();
 		}
 
@@ -4795,12 +4858,22 @@ public class ChatHeadService extends Service
 			if(chatProjectionDown != null)	mWindowManager.removeView(chatProjectionDown);
 			if(chatProjectionUp != null)	mWindowManager.removeView(chatProjectionUp);
 
+			Intent intentDestroyed = new Intent(ChatHeadService.this, NotificationScannerService.class);
+			intentDestroyed.putExtra("type", "destroyed");
+			int sentsCount = 0;
+			for(Boolean iSent : sendButtonClicks)
+				if(iSent)
+					sentsCount++;
+			intentDestroyed.putExtra("sentsCount", sentsCount);
+			intentDestroyed.putExtra("spamsCount", getSpamsCount());
+			startService(intentDestroyed);
+
 			ArrayList<String> ignores = new ArrayList<String>();
 			ArrayList<String>sends = new ArrayList<String>();
 
 			for(int i = 0;i < senders.size();i++)
 			{
-				if(!sendButtonClicks.get(i) && !autoSends.get(i))
+				if(!sendButtonClicks.get(i))
 					ignores.add(senders.get(i));
 				else
 					sends.add(senders.get(i));
@@ -4869,10 +4942,6 @@ public class ChatHeadService extends Service
 			updated = false;
 			visible = false;
 			created = false;
-
-			Intent intentDestroyed = new Intent(ChatHeadService.this, NotificationScannerService.class);
-			intentDestroyed.putExtra("type", "destroyed");
-			startService(intentDestroyed);
 		}
 		else
 			restartSelf();

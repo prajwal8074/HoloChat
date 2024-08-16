@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1000563887891",
+    "project_id": "holochat-analytics",
+    "storage_bucket": "holochat-analytics.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1000563887891:android:4d3b11abb001d919f014e6",
+        "android_client_info": {
+          "package_name": "com.prajwal.holochat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqG5E3WjEPwtKzdodN7_Q7NTks1RDs6bc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
