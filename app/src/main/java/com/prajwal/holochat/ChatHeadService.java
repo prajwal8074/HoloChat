@@ -22,6 +22,7 @@ import android.text.Html;
 
 //import com.google.android.gms.ads.*;
 //import com.google.android.gms.ads.initialization.*;
+import com.google.firebase.analytics.FirebaseAnalytics;
 
 public class ChatHeadService extends Service
 {
@@ -200,6 +201,8 @@ public class ChatHeadService extends Service
 
 	boolean hapticsEnabled = false;
 
+	private FirebaseAnalytics mFirebaseAnalytics;
+
 	@Override
 	public IBinder onBind(Intent intent)
 	{
@@ -219,6 +222,8 @@ public class ChatHeadService extends Service
 			{
 				if(mWindowManager == null)
 				{
+					mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+		
 					new CountDownTimer(1000, 1000){
 
 						@Override
@@ -376,6 +381,8 @@ public class ChatHeadService extends Service
 																		{
 																			onChatDataChange();
 																			refreshNotification();
+																			if(mFirebaseAnalytics != null)
+																				mFirebaseAnalytics.logEvent("spam_detected", new Bundle());
 																		}
 																	});
 													        	}
@@ -473,6 +480,9 @@ public class ChatHeadService extends Service
 
 																										if(loadedReply.trim().equals(""))
 																											refreshViews.get(chatViewIndex).setVisibility(View.GONE);
+																										else
+																											if(mFirebaseAnalytics != null)
+																												mFirebaseAnalytics.logEvent("reply_generated", new Bundle());
 																									}
 																								});
 																						}
@@ -1231,6 +1241,8 @@ public class ChatHeadService extends Service
 											haptic(5, 255);
 											if(isExpanded)
 											{
+												if(mFirebaseAnalytics != null)
+													mFirebaseAnalytics.logEvent("expanded", new Bundle());
 												sleepTimer.cancel();
 												sleepShrinkTimer.cancel();
 												chatCircleRemoves.setVisibility(View.INVISIBLE);
@@ -1814,6 +1826,8 @@ public class ChatHeadService extends Service
 																																	if(!pkgs.get(chatIndex).equals(appPkg))
 																																	{
 																																		requestProfileIntents(chatIndex, ids.get(chatIndex));
+																																		if(mFirebaseAnalytics != null)
+																																			mFirebaseAnalytics.logEvent("sender_clicked", new Bundle());
 																																		if(showingChat)
 																																			chatListStates.set(chatInFocus+2, chatList.onSaveInstanceState());
 																																		chatListView.setVisibility(View.GONE); //chatList.setAdapter(null);
@@ -1917,6 +1931,9 @@ public class ChatHeadService extends Service
 																														emoji.setOnClickListener(new View.OnClickListener() {
 																															@Override
 																															public void onClick(View v) {
+																																if(mFirebaseAnalytics != null)
+																																	mFirebaseAnalytics.logEvent("emoticons_opened", new Bundle());
+
 																																/*PopupMenu popupMenu = new PopupMenu(AppActivity.this, emoji);
 																																popupMenu.getMenu().add(":--)");
 																																popupMenu.getMenu().add(":--|");
@@ -1979,6 +1996,8 @@ public class ChatHeadService extends Service
 																																					@Override
 																																					public void onClick(View view)
 																																					{
+																																						if(mFirebaseAnalytics != null)
+																																							mFirebaseAnalytics.logEvent("emoticon_selected", new Bundle());
 																																						replyView.setText(replyView.getText().toString()+button.getText().toString());
 																																						dialog.dismiss();
 																																					}
@@ -2019,6 +2038,8 @@ public class ChatHeadService extends Service
 																																		@Override
 																																		public void onClick(View view)
 																																		{
+																																			if(mFirebaseAnalytics != null)
+																																				mFirebaseAnalytics.logEvent("emoticon_selected", new Bundle());
 																																			replyView.setText(replyView.getText().toString()+button.getText().toString());
 																																			dialog.dismiss();
 																																		}
@@ -2216,10 +2237,15 @@ public class ChatHeadService extends Service
 																																			if(!replyStr.trim().equals(replies.get(chatIndex).trim())
 																																			   && !(replyStr.equals(PENDING) || replyStr.equals(LOADING)))
 																																			{
+																																				if(mFirebaseAnalytics != null)
+																																					mFirebaseAnalytics.logEvent("send_clicked", new Bundle());
+																																				
 																																				if(sendDataView.isChecked())
 																																				{
 																																					toLearn.add(new String[]{messages.get(chatIndex), replyStr});
 																																					loaded = false;
+																																					if(mFirebaseAnalytics != null)
+																																						mFirebaseAnalytics.logEvent("bot_trained", new Bundle());
 																																				}
 																																			}
 																																		}
@@ -2488,6 +2514,9 @@ public class ChatHeadService extends Service
 																																			if(!(actTitle.contains("like") || actTitle.contains("thumb") || pkg.contains("insta") || pkg.contains("viber") || actTitle.contains("heart") || actTitle.contains("love")))
 																																			{
 																																				requestButtonIntents(ids.get(chatIndex));
+																																				if(mFirebaseAnalytics != null)
+																																					mFirebaseAnalytics.logEvent("notification_action_clicked", new Bundle());
+
 																																				itemView.removeView(buttonN);
 																																				
 																																				buttonIcons.set(chatIndex, null);
@@ -2542,6 +2571,8 @@ public class ChatHeadService extends Service
 																																					((ImageView)buttonN).setRotation(-45f);
 
 																																					requestButtonIntents(ids.get(chatIndex));
+																																					if(mFirebaseAnalytics != null)
+																																						mFirebaseAnalytics.logEvent("notification_action_clicked", new Bundle());
 																																					itemView.removeView(buttonN);
 
 																																					for(int c = 0;c < ids.size();c++)
@@ -2561,6 +2592,8 @@ public class ChatHeadService extends Service
 																																					((ImageView)buttonN).setRotation(1.25f);
 
 																																					requestButtonIntents(ids.get(chatIndex));
+																																					if(mFirebaseAnalytics != null)
+																																						mFirebaseAnalytics.logEvent("notification_action_clicked", new Bundle());
 																																					itemView.removeView(buttonN);
 
 																																					for(int c = 0;c < ids.size();c++)
@@ -3012,6 +3045,9 @@ public class ChatHeadService extends Service
 											{
 												voluntaryDestroing = true;
 
+												if(mFirebaseAnalytics != null)
+													mFirebaseAnalytics.logEvent("destroyed", new Bundle());
+
 												chatCircleMessages.setVisibility(View.GONE);
 												chatCircleRemoves.setVisibility(View.GONE);
 
@@ -3093,6 +3129,10 @@ public class ChatHeadService extends Service
 																	{
 																		File spamFile = new File(spamDataDir, "spam"+String.valueOf(spamDataDir.list().length));
 																		try{writeToFile(spamFile, new String[]{messages.get(chatIndex)});}catch(IOException e){}
+																		finally{
+																			if(mFirebaseAnalytics != null)
+																				mFirebaseAnalytics.logEvent("spam_trained", new Bundle());
+																		}
 																	}
 																}
 																break;
@@ -3107,6 +3147,10 @@ public class ChatHeadService extends Service
 																	{
 																		File hamFile = new File(spamDataDir, "ham"+String.valueOf(spamDataDir.list().length));
 																		try{writeToFile(hamFile, new String[]{messages.get(chatIndex)});}catch(IOException e){}
+																		finally{
+																			if(mFirebaseAnalytics != null)
+																				mFirebaseAnalytics.logEvent("ham_trained", new Bundle());
+																		}
 																	}
 																}
 																break;
@@ -3208,7 +3252,7 @@ public class ChatHeadService extends Service
 																else
 																	chatHead.setScaleX(-1f);
 																
-																if(!isExpanded && !moving)
+																if(!isExpanded)
 																{
 																	chatCircleMessages.setVisibility(View.VISIBLE);
 																	chatCircleRemoves.setVisibility(View.VISIBLE);
@@ -3258,7 +3302,7 @@ public class ChatHeadService extends Service
 
 														mWindowManager.updateViewLayout(mChatHeadView, mChatHeadViewParams); 
 
-														if(!isExpanded && !moving)
+														if(!isExpanded)
 														{
 															chatCircleMessages.setVisibility(View.VISIBLE);
 															chatCircleRemoves.setVisibility(View.VISIBLE);
@@ -3333,7 +3377,7 @@ public class ChatHeadService extends Service
 															else
 																chatHead.setScaleX(-1f);
 
-															if(!isExpanded && !moving)
+															if(!isExpanded)
 															{
 																chatCircleMessages.setVisibility(View.VISIBLE);
 																chatCircleRemoves.setVisibility(View.VISIBLE);
@@ -3384,7 +3428,7 @@ public class ChatHeadService extends Service
 															@Override
 															public void onFinish()
 															{
-																if(!isExpanded && !moving)
+																if(!isExpanded)
 																{
 																	chatCircleMessages.setVisibility(View.VISIBLE);
 																	chatCircleRemoves.setVisibility(View.VISIBLE);
@@ -3421,7 +3465,7 @@ public class ChatHeadService extends Service
 															// TODO: Implement this method
 															mChatHeadViewParams.y = isToTop ? 0 : screenHeight - chatHeadHeight;
 															mWindowManager.updateViewLayout(mChatHeadView, mChatHeadViewParams);
-															if(!isExpanded && !moving)
+															if(!isExpanded)
 															{
 																chatCircleMessages.setVisibility(View.VISIBLE);
 																chatCircleRemoves.setVisibility(View.VISIBLE);
@@ -3693,9 +3737,12 @@ public class ChatHeadService extends Service
 									senderColors.add(Color.rgb(intensity, 255 - intensity, 0));
 								else
 									senderColors.add(Color.rgb(0, 255 + intensity, -intensity));
+
+								if(mFirebaseAnalytics != null)
+									mFirebaseAnalytics.logEvent("new_message", new Bundle());
 							}
 
-							boolean isAsTo = false;
+							/*boolean isAsTo = false;
 							boolean isAsMsg = false;
 
 							if(autoSendTos.contains(data[SENDER][i]))
@@ -3744,9 +3791,9 @@ public class ChatHeadService extends Service
 										writeToFile(autoSendMsgsUFile, autoSendMsgsU.toArray(new String[]{}));
 										break;
 									}
-							}
+							}*/
 
-							autoSends.add(isAsTo || isAsMsg);
+							autoSends.add(false);
 
 							sendButtonClicks.add(false);
 						}
@@ -4860,12 +4907,12 @@ public class ChatHeadService extends Service
 
 			Intent intentDestroyed = new Intent(ChatHeadService.this, NotificationScannerService.class);
 			intentDestroyed.putExtra("type", "destroyed");
-			int sentsCount = 0;
+			/*int sentsCount = 0;
 			for(Boolean iSent : sendButtonClicks)
 				if(iSent)
-					sentsCount++;
-			intentDestroyed.putExtra("sentsCount", sentsCount);
-			intentDestroyed.putExtra("spamsCount", getSpamsCount());
+					sentsCount++;*/
+			//intentDestroyed.putExtra("sentsCount", sentsCount);
+			//intentDestroyed.putExtra("spamsCount", getSpamsCount());
 			startService(intentDestroyed);
 
 			ArrayList<String> ignores = new ArrayList<String>();
