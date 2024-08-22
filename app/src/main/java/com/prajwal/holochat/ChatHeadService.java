@@ -4293,7 +4293,7 @@ public class ChatHeadService extends Service
 		{
 			String CHANNEL_ID = getPackageName().replace(".", "_");// The id of the channel. 
 			notification.setChannelId(CHANNEL_ID);
-			NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, "Chat Head Active Notification", NotificationManager.IMPORTANCE_MAX);	
+			NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, "Chat Head Active Notification", NotificationManager.IMPORTANCE_LOW);	
 			NotificationManager mNotificationManager =
 				(NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 			mNotificationManager.createNotificationChannel(mChannel);

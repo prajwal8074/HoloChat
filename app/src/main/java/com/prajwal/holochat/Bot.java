@@ -3744,7 +3744,7 @@ public class Bot
 				}
 			}catch(Exception e)
 			{
-				return new String[]{"error loading reply : " + e.getMessage()};//e.toString() + "\n\n" + e.getStackTrace()[0].toString()};
+				return new String[]{""};//e.toString() + "\n\n" + e.getStackTrace()[0].toString()};
 			}
 		}
 

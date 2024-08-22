@@ -244,16 +244,15 @@ public class AppActivity extends Activity
 				Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
 				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
 			}
-
-			if(pendingPermissions.size() > 0)
-			{
-				requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
-			}
 			else
 			if(!Settings.canDrawOverlays(this))
 			{
 				Intent intentPermissionDrawOverOtherApps = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
 				startActivityForResult(intentPermissionDrawOverOtherApps, CODE_DRAW_OVER_OTHER_APP_PERMISSION);
+			}else
+			if(pendingPermissions.size() > 0)
+			{
+				requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
 			}
 
 			if(pendingPermissions.size()==0 
@@ -2533,12 +2532,6 @@ public class AppActivity extends Activity
 			copyAssets();
 		if(pendingPermissions.size() > 0)
 			requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
-		else
-		if(!Settings.canDrawOverlays(this))
-		{
-			Intent intentPermissionDrawOverOtherApps = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
-			startActivityForResult(intentPermissionDrawOverOtherApps, CODE_DRAW_OVER_OTHER_APP_PERMISSION);
-		}
 
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 	}
@@ -2558,6 +2551,10 @@ public class AppActivity extends Activity
 				Toast.makeText(this, "\"Draw over other apps\" permission is required to display Chat Head", Toast.LENGTH_LONG).show();
 				Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
 				startActivityForResult(intent, CODE_DRAW_OVER_OTHER_APP_PERMISSION);
+			}else
+			if(pendingPermissions.size() > 0)
+			{
+				requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
 			}
 		}else
 		if(requestCode == CODE_NOTIFICATION_ACCESS)
@@ -2567,6 +2564,15 @@ public class AppActivity extends Activity
 				Toast.makeText(this, "\"Notification access\" is required for chat interactions", Toast.LENGTH_LONG).show();
 				Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
 				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
+			}else
+			if(!Settings.canDrawOverlays(this))
+			{
+				Intent intentPermissionDrawOverOtherApps = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
+				startActivityForResult(intentPermissionDrawOverOtherApps, CODE_DRAW_OVER_OTHER_APP_PERMISSION);
+			}else
+			if(pendingPermissions.size() > 0)
+			{
+				requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
 			}
 		}
 		else
