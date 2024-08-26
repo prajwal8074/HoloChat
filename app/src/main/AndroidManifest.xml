@@ -57,7 +57,8 @@
 			android:label="Chat Head Service"
             android:foregroundServiceType="specialUse"
 			android:permission="android.permission.SYSTEM_ALERT_WINDOW"
-            android:exported="false"/>
+            android:exported="false"
+            android:largeHeap="true"/>
         
         <!--meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
