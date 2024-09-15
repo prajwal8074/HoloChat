@@ -26,12 +26,12 @@ public class AppActivity extends Activity
 	private static final int CODE_NOTIFICATION_ACCESS = 8421;
 	private static final int CODE_COMMON = 2;
 	String[] permissions = new String[]{
-		Manifest.permission.READ_CONTACTS,
-		Manifest.permission.WRITE_EXTERNAL_STORAGE
+		Manifest.permission.READ_CONTACTS
+		//Manifest.permission.WRITE_EXTERNAL_STORAGE
 	};
 	String[] permissionsReason = new String[]{
-		"\"Read Contacts\" permission is required for messaging a contact",
-		"\"Write External Storage\" permission is required for storing app files"
+		"\"Read Contacts\" permission is required for messaging a contact"
+		//"\"Write External Storage\" permission is required for storing app files"
 	};
 	ArrayList<String> pendingPermissions;
 
@@ -41,6 +41,8 @@ public class AppActivity extends Activity
 	int screenWidth;
 	int screenHeight;
 	float screenDensity;
+	float xdpi;
+	float ydpi;
 	int MATCH_PARENT;
 	int WRAP_CONTENT;
 	int baseButtonsWidth;
@@ -121,8 +123,8 @@ public class AppActivity extends Activity
 		screenHeight = getResources().getDisplayMetrics().heightPixels;
 		screenDensity = getResources().getDisplayMetrics().density;
 
-		final float xdpi = getResources().getDisplayMetrics().xdpi;
-		final float ydpi = getResources().getDisplayMetrics().ydpi;
+		xdpi = getResources().getDisplayMetrics().xdpi;
+		ydpi = getResources().getDisplayMetrics().ydpi;
 
 		int paddingLeft = screenWidth/100;
 		int paddingTop = screenHeight/100;
@@ -160,103 +162,24 @@ public class AppActivity extends Activity
 				if(PermissionChecker.checkSelfPermission(this, permission) !=  PermissionChecker.PERMISSION_GRANTED)
 					pendingPermissions.add(permission);
 
-			if(!NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName()))
-			{
-				int chatHeadSize = (int)(xdpi / 2.3f);
-				LinearLayout initDialogLayout = new LinearLayout(getApplicationContext());
-				initDialogLayout.setOrientation(LinearLayout.HORIZONTAL);
-				final ImageView refreshView = new ImageView(getApplicationContext());
-				refreshView.setImageResource(R.drawable.ic_refresh);
-				refreshView.setScaleX(-1);
-				LinearLayout.LayoutParams refreshViewParams = new LinearLayout.LayoutParams(chatHeadSize/2+chatHeadSize/2+chatHeadSize/8, chatHeadSize/2);
-				refreshViewParams.setMargins(chatHeadSize/2, 0, chatHeadSize/8, 0);
-				initDialogLayout.addView(refreshView, refreshViewParams);
-				final CountDownTimer refreshLoadingTimer = new CountDownTimer(360*2, 1){
-
-					@Override
-					public void onTick(long p1)
-					{
-						refreshView.setRotation(360-p1/2);
-					}
-
-					@Override
-					public void onFinish()
-					{
-						refreshView.setRotation(0);
-						start();
-					}
-				};
-				final TextView message = new TextView(getApplicationContext());
-				message.setText("This will take some time");
-				message.setTextColor(Color.LTGRAY);
-				message.setGravity(Gravity.CENTER_VERTICAL);
-				initDialogLayout.addView(message, new LinearLayout.LayoutParams(MATCH_PARENT, chatHeadSize/2));
-				final AlertDialog initDialog = new AlertDialog.Builder(AppActivity.this).setCancelable(false).setTitle("Initializing").setView(initDialogLayout).create();
-				initDialog.getWindow().setBackgroundDrawableResource(R.drawable.dialog_background);
-				initDialog.setOnShowListener(new DialogInterface.OnShowListener() {
-	                @Override
-	                public void onShow(DialogInterface arg0) {
-	                    int titleId = getResources().getIdentifier("alertTitle", "id", "android");
-		                TextView title = (TextView) initDialog.findViewById(titleId);
-						title.setTextColor(Color.parseColor("#01def9"));
-	                }
-				});
-				new Thread(){
-		            public void run(){
-		            	try
-						{
-							runOnUiThread(new Runnable() {
-							    @Override
-							    public void run() {
-							        initDialog.show();
-							        refreshLoadingTimer.start();
-							    }
-							});
-							String[] filesPath = readFromAsset("lateFilesPath", "SEPARATOR_NEW_LINE");
-							String[][] filesData = new String[filesPath.length][];
-							for(int f = 0;f < filesPath.length;f++)
-							{
-								String filePath = filesPath[f].replace("/", File.separator);
-								filesData[f] = readFromAsset(filePath.substring(filePath.lastIndexOf(File.separator)+1, filePath.length()), "SEPARATOR_NEW_LINE");
-							}
-							addFilesFromData(filesPath, filesData, getExternalFilesDir(null));
-
-							//Training trainModule = new Training(SpamDir.getAbsolutePath());
-							//trainModule.preProcessFiles(new String[]{"data"});
-						}
-						catch(Exception e)
-						{
-							//Toast.makeText(this, "failed to add files, Exception copied to clipboard", Toast.LENGTH_LONG).show();
-						}finally{
-							runOnUiThread(new Runnable() {
-							    @Override
-							    public void run() {
-							    	refreshLoadingTimer.cancel();
-							        initDialog.dismiss();
-							        Intent intent = getIntent();
-									finish();
-									startActivity(intent);
-							    }
-							});
-						}
-		            }
-		        }.start();
-				Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
-				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
-			}
-			else
+			
 			if(!Settings.canDrawOverlays(this))
 			{
 				Intent intentPermissionDrawOverOtherApps = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
 				startActivityForResult(intentPermissionDrawOverOtherApps, CODE_DRAW_OVER_OTHER_APP_PERMISSION);
 			}else
+			if(!NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName()))
+			{
+				Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
+			}
+			else
 			if(pendingPermissions.size() > 0)
 			{
 				requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
 			}
 
-			if(pendingPermissions.size()==0 
-				&& NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName())
+			if(NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName())
 				&& Settings.canDrawOverlays(this))
 			{
 				tgtAppsPkg = new ArrayList<String>();
@@ -2367,6 +2290,7 @@ public class AppActivity extends Activity
 											.putExtra("type", "init");
 										startService(creatChatHeadIntent);
 
+										refreshAbstracts();
 										int[] absIndices = new int[]{
 											random.nextInt(abstracts[REQ].size()),
 											0
@@ -2526,10 +2450,6 @@ public class AppActivity extends Activity
 				pendingPermissions.add(permissions[p]);
 				Toast.makeText(getApplicationContext(), permissionsReason[p], Toast.LENGTH_LONG).show();
 			}
-		if(pendingPermissions.size()==0 
-			&& NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName())
-			&& Settings.canDrawOverlays(this))
-			copyAssets();
 		if(pendingPermissions.size() > 0)
 			requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
 
@@ -2539,8 +2459,7 @@ public class AppActivity extends Activity
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
 	{
-		if(pendingPermissions.size()==0 
-			&& NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName())
+		if(NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName())
 			&& Settings.canDrawOverlays(this))
 			copyAssets();
 		// TODO: Implement this method
@@ -2551,6 +2470,11 @@ public class AppActivity extends Activity
 				Toast.makeText(this, "\"Draw over other apps\" permission is required to display Chat Head", Toast.LENGTH_LONG).show();
 				Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
 				startActivityForResult(intent, CODE_DRAW_OVER_OTHER_APP_PERMISSION);
+			}else
+			if(!NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName()))
+			{
+				Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
+				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
 			}else
 			if(pendingPermissions.size() > 0)
 			{
@@ -2565,11 +2489,6 @@ public class AppActivity extends Activity
 				Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
 				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
 			}else
-			if(!Settings.canDrawOverlays(this))
-			{
-				Intent intentPermissionDrawOverOtherApps = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
-				startActivityForResult(intentPermissionDrawOverOtherApps, CODE_DRAW_OVER_OTHER_APP_PERMISSION);
-			}else
 			if(pendingPermissions.size() > 0)
 			{
 				requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
@@ -2581,7 +2500,110 @@ public class AppActivity extends Activity
 
 	private void copyAssets()
 	{
-		try{
+		int chatHeadSize = (int)(xdpi / 2.3f);
+		LinearLayout initDialogLayout = new LinearLayout(getApplicationContext());
+		initDialogLayout.setOrientation(LinearLayout.HORIZONTAL);
+		final ImageView refreshView = new ImageView(getApplicationContext());
+		refreshView.setImageResource(R.drawable.ic_refresh);
+		refreshView.setScaleX(-1);
+		LinearLayout.LayoutParams refreshViewParams = new LinearLayout.LayoutParams(chatHeadSize/2+chatHeadSize/2+chatHeadSize/8, chatHeadSize/2);
+		refreshViewParams.setMargins(chatHeadSize/2, 0, chatHeadSize/8, 0);
+		initDialogLayout.addView(refreshView, refreshViewParams);
+		final CountDownTimer refreshLoadingTimer = new CountDownTimer(360*2, 1){
+
+			@Override
+			public void onTick(long p1)
+			{
+				refreshView.setRotation(360-p1/2);
+			}
+
+			@Override
+			public void onFinish()
+			{
+				refreshView.setRotation(0);
+				start();
+			}
+		};
+		final TextView message = new TextView(getApplicationContext());
+		message.setText("This will take some time");
+		message.setTextColor(Color.LTGRAY);
+		message.setGravity(Gravity.CENTER_VERTICAL);
+		initDialogLayout.addView(message, new LinearLayout.LayoutParams(MATCH_PARENT, chatHeadSize/2));
+		final AlertDialog initDialog = new AlertDialog.Builder(AppActivity.this).setCancelable(false).setTitle("Initializing").setView(initDialogLayout).create();
+		initDialog.getWindow().setBackgroundDrawableResource(R.drawable.dialog_background);
+		initDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface arg0) {
+                int titleId = getResources().getIdentifier("alertTitle", "id", "android");
+                TextView title = (TextView) initDialog.findViewById(titleId);
+				title.setTextColor(Color.parseColor("#01def9"));
+            }
+		});
+		new Thread(){
+            public void run(){
+            	try
+				{
+					runOnUiThread(new Runnable() {
+					    @Override
+					    public void run() {
+					        initDialog.show();
+					        refreshLoadingTimer.start();
+					    }
+					});
+					String[] filesPath = readFromAsset("lateFilesPath", "SEPARATOR_NEW_LINE");
+					String[][] filesData = new String[filesPath.length][];
+					for(int f = 0;f < filesPath.length;f++)
+					{
+						String filePath = filesPath[f].replace("/", File.separator);
+						filesData[f] = readFromAsset(filePath.substring(filePath.lastIndexOf(File.separator)+1, filePath.length()), "SEPARATOR_NEW_LINE");
+					}
+					addFilesFromData(filesPath, filesData, getExternalFilesDir(null));
+
+					//Training trainModule = new Training(SpamDir.getAbsolutePath());
+					//trainModule.preProcessFiles(new String[]{"data"});
+				}
+				catch(Exception e)
+				{
+					/*runOnUiThread(new Runnable() {
+					    @Override
+					    public void run() {
+					    	Toast.makeText(getApplicationContext(), e.toString(), Toast.LENGTH_LONG).show();
+					    }
+					});*/
+				}finally{
+					runOnUiThread(new Runnable() {
+					    @Override
+					    public void run() {
+							try{
+								String[] fileNames = {"spamdb", "hamdb", "arcdb", "stats"};
+								for(String fileName : fileNames)
+								{
+									AssetManager assets = getResources().getAssets();
+									InputStream in = assets.open(fileName);
+									File file = new File(SpamDir, fileName);
+									if(file.exists())file.delete();file.createNewFile();
+							        OutputStream out = new FileOutputStream(file);
+							        int nextByte;
+									while ((nextByte = in.read()) != -1) {
+									    out.write(nextByte);
+									}
+
+									out.flush();
+								}
+							}catch(IOException e){}
+
+					    	refreshLoadingTimer.cancel();
+					        initDialog.dismiss();
+					        Intent intent = getIntent();
+							finish();
+							startActivity(intent);
+					    }
+					});
+				}
+            }
+        }.start();
+
+        try{
 			String[] filesPath = readFromAsset("filesPath", "SEPARATOR_NEW_LINE");
 			String[][] filesData = new String[filesPath.length][];
 			for(int f = 0;f < filesPath.length;f++)
@@ -2590,22 +2612,6 @@ public class AppActivity extends Activity
 				filesData[f] = readFromAsset(filePath.substring(filePath.lastIndexOf(File.separator)+1, filePath.length()), "SEPARATOR_NEW_LINE");
 			}
 			addFilesFromData(filesPath, filesData, dataDir);
-
-			String[] fileNames = {"spamdb", "hamdb", "arcdb", "stats"};
-			for(String fileName : fileNames)
-			{
-						AssetManager assets = getResources().getAssets();
-						InputStream in = assets.open(fileName);
-						File file = new File(SpamDir, fileName);
-						if(file.exists())file.delete();file.createNewFile();
-				        OutputStream out = new FileOutputStream(file);
-				        int nextByte;
-						while ((nextByte = in.read()) != -1) {
-						    out.write(nextByte);
-						}
-
-						out.flush();
-			}
 
 			tgtAppsPkg = new ArrayList<String>();
 			for(String tgtAppPkg : readFromFile(tgtAppsPkgFile, "SEPARATOR_NEW_LINE"))
@@ -2794,12 +2800,16 @@ public class AppActivity extends Activity
 				String filePath = filesPath[f];
 				File file = new File(tgt, filePath);
 
-				String folderPath = filePath.substring(0, filePath.lastIndexOf(File.separator));
-				File folder = new File(tgt, folderPath);
-
-				if(!folder.exists())
-					folder.mkdirs();
-
+				String[] pathSplit = filePath.split(File.separator);
+				File parent = tgt;
+				for(int fl=1;fl<pathSplit.length-1;fl++)
+				{
+					String folderPath = pathSplit[fl];
+					File folder = new File(parent, folderPath);
+					if(!folder.exists())
+						folder.mkdir();
+					parent = folder;
+				}
 				if(!file.exists())
 				{
 					file.createNewFile();
