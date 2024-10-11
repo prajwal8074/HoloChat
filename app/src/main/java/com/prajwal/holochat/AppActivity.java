@@ -24,14 +24,15 @@ public class AppActivity extends Activity
 {
 	private static final int CODE_DRAW_OVER_OTHER_APP_PERMISSION = 8074;
 	private static final int CODE_NOTIFICATION_ACCESS = 8421;
+	private static final int CODE_BATTERY_OPTIMIZATION = 8021;
 	private static final int CODE_COMMON = 2;
 	String[] permissions = new String[]{
 		Manifest.permission.READ_CONTACTS
 		//Manifest.permission.WRITE_EXTERNAL_STORAGE
 	};
 	String[] permissionsReason = new String[]{
-		"\"Read Contacts\" permission is required for messaging a contact"
-		//"\"Write External Storage\" permission is required for storing app files"
+		"\'Read Contacts\' permission is required for messaging a contact"
+		//"\'Write External Storage\' permission is required for storing app files"
 	};
 	ArrayList<String> pendingPermissions;
 
@@ -50,6 +51,7 @@ public class AppActivity extends Activity
 	float chatHeadSizeDiv;
 	int chatHeadSensitivity;
 	boolean hapticsEnabled;
+	boolean OTPProtectionEnabled;
 	boolean keepNotifications;
 
 	RelativeLayout baseLayout;
@@ -75,6 +77,7 @@ public class AppActivity extends Activity
 	File ignoredsFile;
 	File chatHeadSensitivityFile;
 	File hapticsEnabledFile;
+	File OTPProtectionEnabledFile;
 	File keepNotificationsFile;
 	File NLDataDir;
 	File tgtAppsPkgFile;
@@ -145,6 +148,7 @@ public class AppActivity extends Activity
 		ignoredsFile = new File(CHDataDir, "ignoreds");
 		chatHeadSensitivityFile = new File(CHDataDir, "chatHeadSensitivity");
 		hapticsEnabledFile = new File(CHDataDir, "hapticsEnabled");
+		OTPProtectionEnabledFile = new File(CHDataDir, "OTPProtectionEnabled");
 		keepNotificationsFile = new File(CHDataDir, "keepNotifications");
 		NLDataDir = new File(dataDir, "NotificationListenerData");
 		tgtAppsPkgFile = new File(NLDataDir, "tgtAppsPkg");
@@ -162,7 +166,6 @@ public class AppActivity extends Activity
 				if(PermissionChecker.checkSelfPermission(this, permission) !=  PermissionChecker.PERMISSION_GRANTED)
 					pendingPermissions.add(permission);
 
-			
 			if(!Settings.canDrawOverlays(this))
 			{
 				Intent intentPermissionDrawOverOtherApps = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
@@ -174,6 +177,11 @@ public class AppActivity extends Activity
 				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
 			}
 			else
+			if (!((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName())) 
+			{
+			    Intent intentPermissionDisableBatteryOptimization = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName()));
+			    startActivityForResult(intentPermissionDisableBatteryOptimization, CODE_BATTERY_OPTIMIZATION);
+			}else
 			if(pendingPermissions.size() > 0)
 			{
 				requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
@@ -234,6 +242,7 @@ public class AppActivity extends Activity
 				chatHeadSizeDiv = Float.valueOf(readFromFile(chatHeadSizeDivFile, "SEPARATOR_NEW_LINE")[0]);
 				chatHeadSensitivity = Integer.parseInt(readFromFile(chatHeadSensitivityFile, "SEPARATOR_NEW_LINE")[0]);
 				hapticsEnabled = Boolean.parseBoolean(readFromFile(hapticsEnabledFile, "SEPARATOR_NEW_LINE")[0]);
+				OTPProtectionEnabled = Boolean.parseBoolean(readFromFile(OTPProtectionEnabledFile, "SEPARATOR_NEW_LINE")[0]);
 				keepNotifications = Boolean.parseBoolean(readFromFile(keepNotificationsFile, "SEPARATOR_NEW_LINE")[0]);
 			}catch (IOException e)
 			{}catch (NumberFormatException e)
@@ -578,10 +587,10 @@ public class AppActivity extends Activity
 										//for future upgradibility
 										final int fixesTotal = 4;
 
-										final String[] textsStr = new String[]{ 
-											"Notifications not being received? Try restarting NotificafionListener/Scanner",
-											"Try restarting NotificationScannerService manually in settings",
-											"Check the \"Draw over other apps\" or \"Draw overlays\" permission",
+										final String[] textsStr = new String[]{
+											"Notifications not reflecting in Chat Head? Try restarting NotificafionListener",
+											"Try restarting NotificationListener manually from Settings",
+											"Check the \'Draw over other apps\' permission",
 											"If the app was working previously and suddenly stops, then restarting the device may help"
 										};
 
@@ -998,7 +1007,7 @@ public class AppActivity extends Activity
 													CheckBox checkbox = new CheckBox(getApplicationContext());
 													checkbox.setText("\nEnable Haptics\n");
 													checkbox.setTextColor(Color.WHITE);
-													checkbox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));//setButtonTintList is accessible directly on API>19
+													checkbox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
 													checkbox.setChecked(hapticsEnabled);
 													checkbox.setTextColor(Color.LTGRAY);
 													checkbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -1019,6 +1028,22 @@ public class AppActivity extends Activity
 
 												if(i == 3)
 												{
+													CheckBox checkbox = new CheckBox(getApplicationContext());
+													checkbox.setText("\nOTP Bomb Protection\n");
+													checkbox.setTextColor(Color.WHITE);
+													checkbox.setButtonTintList(ColorStateList.valueOf(Color.parseColor("#00dff9")));
+													checkbox.setChecked(OTPProtectionEnabled);
+													checkbox.setTextColor(Color.LTGRAY);
+													checkbox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+
+													       @Override
+													       public void onCheckedChanged(CompoundButton buttonView,boolean isChecked) {
+													    		OTPProtectionEnabled = isChecked;
+													       }
+													   }
+													);
+													LinearLayout.LayoutParams checkboxParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
+
 													TextView info = new TextView(getApplicationContext());
 													info.setTextAppearance(android.R.style.TextAppearance_Medium);
 													info.setTextColor(Color.LTGRAY);
@@ -1164,6 +1189,8 @@ public class AppActivity extends Activity
 														});
 													LinearLayout.LayoutParams showDataButtonParams = new LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
 
+
+													((LinearLayout)view).addView(checkbox, checkboxParams);
 													((LinearLayout)view).addView(info, infoParams);
 													((LinearLayout)view).addView(showDataButton, showDataButtonParams);
 													((LinearLayout)view).addView(addButton, addButtonParams);
@@ -2123,6 +2150,80 @@ public class AppActivity extends Activity
 														hapticsEnabledFile.createNewFile();
 														writeToFile(hapticsEnabledFile, new String[]{String.valueOf(hapticsEnabled)}, "SEPARATOR_NEW_LINE");
 													}
+													if (OTPProtectionEnabled != Boolean.parseBoolean(readFromFile(OTPProtectionEnabledFile, "SEPARATOR_NEW_LINE")[0])) {
+														OTPProtectionEnabledFile.delete();
+														OTPProtectionEnabledFile.createNewFile();
+														writeToFile(OTPProtectionEnabledFile, new String[]{String.valueOf(OTPProtectionEnabled)}, "SEPARATOR_NEW_LINE");
+
+														int chatHeadSize = (int)(xdpi / 2.3f);
+														LinearLayout initDialogLayout = new LinearLayout(getApplicationContext());
+														initDialogLayout.setOrientation(LinearLayout.HORIZONTAL);
+														final ImageView refreshView = new ImageView(getApplicationContext());
+														refreshView.setImageResource(R.drawable.ic_refresh);
+														refreshView.setScaleX(-1);
+														LinearLayout.LayoutParams refreshViewParams = new LinearLayout.LayoutParams(chatHeadSize/2+chatHeadSize/2+chatHeadSize/8, chatHeadSize/2);
+														refreshViewParams.setMargins(chatHeadSize/2, 0, chatHeadSize/8, 0);
+														initDialogLayout.addView(refreshView, refreshViewParams);
+														final CountDownTimer refreshLoadingTimer = new CountDownTimer(360*2, 1){
+
+															@Override
+															public void onTick(long p1)
+															{
+																refreshView.setRotation(360-p1/2);
+															}
+
+															@Override
+															public void onFinish()
+															{
+																refreshView.setRotation(0);
+																start();
+															}
+														};
+														final TextView message = new TextView(getApplicationContext());
+														message.setText("This will take some time");
+														message.setTextColor(Color.LTGRAY);
+														message.setGravity(Gravity.CENTER_VERTICAL);
+														initDialogLayout.addView(message, new LinearLayout.LayoutParams(MATCH_PARENT, chatHeadSize/2));
+														final AlertDialog initDialog = new AlertDialog.Builder(AppActivity.this).setCancelable(false).setTitle("Retraining").setView(initDialogLayout).create();
+														initDialog.getWindow().setBackgroundDrawableResource(R.drawable.dialog_background);
+														initDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+												            @Override
+												            public void onShow(DialogInterface arg0) {
+												                int titleId = getResources().getIdentifier("alertTitle", "id", "android");
+												                TextView title = (TextView) initDialog.findViewById(titleId);
+																title.setTextColor(Color.parseColor("#01def9"));
+												            }
+														});
+														new Thread(){
+												            public void run(){
+												            	try
+																{
+																	runOnUiThread(new Runnable() {
+																	    @Override
+																	    public void run() {
+																	        initDialog.show();
+																	        refreshLoadingTimer.start();
+																	    }
+																	});
+																	Training trainModule = new Training(SpamDir.getAbsolutePath());
+																	trainModule.preProcessFiles(OTPProtectionEnabled? new String[]{"data"} : new String[]{"data", "otp"});
+																}
+																catch(Exception e)
+																{}finally{
+																	runOnUiThread(new Runnable() {
+																	    @Override
+																	    public void run() {
+																	    	refreshLoadingTimer.cancel();
+																	        initDialog.dismiss();
+																	        Intent intent = getIntent();
+																			finish();
+																			startActivity(intent);
+																	    }
+																	});
+																}
+												            }
+												        }.start();
+													}
 													if (keepNotifications != Boolean.parseBoolean(readFromFile(keepNotificationsFile, "SEPARATOR_NEW_LINE")[0])) {
 														keepNotificationsFile.delete();
 														keepNotificationsFile.createNewFile();
@@ -2460,14 +2561,15 @@ public class AppActivity extends Activity
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
 	{
 		if(NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName())
-			&& Settings.canDrawOverlays(this))
+			&& Settings.canDrawOverlays(this)
+			&& ((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName()))
 			copyAssets();
 		// TODO: Implement this method
 		if(requestCode == CODE_DRAW_OVER_OTHER_APP_PERMISSION)
 		{
 			if(!Settings.canDrawOverlays(this))
 			{
-				Toast.makeText(this, "\"Draw over other apps\" permission is required to display Chat Head", Toast.LENGTH_LONG).show();
+				Toast.makeText(this, "\'Draw over other apps\' permission is required to display Chat Head", Toast.LENGTH_LONG).show();
 				Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
 				startActivityForResult(intent, CODE_DRAW_OVER_OTHER_APP_PERMISSION);
 			}else
@@ -2475,6 +2577,11 @@ public class AppActivity extends Activity
 			{
 				Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
 				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
+			}else
+			if (!((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName())) 
+			{
+			    Intent intentPermissionDisableBatteryOptimization = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName()));
+			    startActivityForResult(intentPermissionDisableBatteryOptimization, CODE_BATTERY_OPTIMIZATION);
 			}else
 			if(pendingPermissions.size() > 0)
 			{
@@ -2485,9 +2592,27 @@ public class AppActivity extends Activity
 		{
 			if(!NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName()))
 			{
-				Toast.makeText(this, "\"Notification access\" is required for chat interactions", Toast.LENGTH_LONG).show();
+				Toast.makeText(this, "\'Notification access\' is required for chat interactions", Toast.LENGTH_LONG).show();
 				Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
 				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
+			}else
+			if (!((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName())) 
+			{
+			    Intent intentPermissionDisableBatteryOptimization = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName()));
+			    startActivityForResult(intentPermissionDisableBatteryOptimization, CODE_BATTERY_OPTIMIZATION);
+			}else
+			if(pendingPermissions.size() > 0)
+			{
+				requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
+			}
+		}
+		if(requestCode == CODE_BATTERY_OPTIMIZATION)
+		{
+			if (!((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName())) 
+			{
+				Toast.makeText(this, "\'Battery Optimization\' restricts the function of Notification Listener", Toast.LENGTH_LONG).show();
+			    Intent intentPermissionDisableBatteryOptimization = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName()));
+			    startActivityForResult(intentPermissionDisableBatteryOptimization, CODE_BATTERY_OPTIMIZATION);
 			}else
 			if(pendingPermissions.size() > 0)
 			{

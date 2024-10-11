@@ -51,6 +51,7 @@ public class ChatHeadService extends Service
 	File chatHeadSizeDivFile;
 	File chatHeadSensitivityFile;
 	File hapticsEnabledFile;
+	File OTPProtectionEnabledFile;
 
     WindowManager mWindowManager;
     RelativeLayout mChatHeadView;
@@ -200,6 +201,7 @@ public class ChatHeadService extends Service
 	};
 
 	boolean hapticsEnabled = false;
+	boolean OTPProtectionEnabled = true;
 
 	private FirebaseAnalytics mFirebaseAnalytics;
 
@@ -566,6 +568,7 @@ public class ChatHeadService extends Service
 					chatHeadSizeDivFile = new File(CHDataDir, "chatHeadSizeDiv");
 					chatHeadSensitivityFile = new File(CHDataDir, "chatHeadSensitivity");
 					hapticsEnabledFile = new File(CHDataDir, "hapticsEnabled");
+					OTPProtectionEnabledFile = new File(CHDataDir, "OTPProtectionEnabled");
 
 					updated = false;
 					created = true;
@@ -586,6 +589,7 @@ public class ChatHeadService extends Service
 						chatHeadSizeDiv = Float.valueOf(readFromFile(chatHeadSizeDivFile, "SEPARATOR_NEW_LINE")[0]);
 						chatHeadSensitivity = Integer.parseInt(readFromFile(chatHeadSensitivityFile, "SEPARATOR_NEW_LINE")[0]);
 						hapticsEnabled = Boolean.parseBoolean(readFromFile(hapticsEnabledFile, "SEPARATOR_NEW_LINE")[0]);
+						OTPProtectionEnabled = Boolean.parseBoolean(readFromFile(OTPProtectionEnabledFile, "SEPARATOR_NEW_LINE")[0]);
 						
 						chatsPerAd = 3;//change this
 						String[] chatsPerAdLines = readFromFile(chatsPerAdFile, "SEPARATOR_NEW_LINE");
@@ -3165,7 +3169,7 @@ public class ChatHeadService extends Service
 													            	try
 																	{
 																		Training trainModule = new Training(SpamDir.getAbsolutePath());
-																		trainModule.preProcessFiles(new String[]{"data"});
+																		trainModule.preProcessFiles(OTPProtectionEnabled? new String[]{"data"} : new String[]{"data", "otp"});
 																	}
 																	catch(Exception e)
 																	{}finally{
