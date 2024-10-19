@@ -10,6 +10,8 @@ import android.service.notification.NotificationListenerService;
 import java.io.*;
 import java.util.*;
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.ServiceCompat;
+import android.content.pm.ServiceInfo;
 
 //import android.widget.Toast;
 
@@ -56,6 +58,39 @@ public class NotificationScannerService extends NotificationListenerService
 		"voice message",
 		"message"
 	};
+
+	NotificationCompat.Builder notification;
+
+	@Override
+	public IBinder onBind(Intent intent)
+	{
+		if(notification==null)
+		{
+			int notificationId = 69420;
+			notification =
+	                new NotificationCompat.Builder(this, "Notification Receiver")
+						.setSmallIcon(R.drawable.ic_logo_transparent)
+						.setContentIntent(PendingIntent.getActivity(NotificationScannerService.this, 0, 
+							new Intent(this, AppActivity.class), PendingIntent.FLAG_MUTABLE))
+						.setStyle(new NotificationCompat.BigTextStyle()
+	                		.bigText("receiving notifications"));
+	        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+			{
+				String CHANNEL_ID = getPackageName().replace(".", "_");// The id of the channel. 
+				notification.setChannelId(CHANNEL_ID);
+				NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, "Receiver Notification", NotificationManager.IMPORTANCE_LOW);	
+				NotificationManager mNotificationManager =
+					(NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+				mNotificationManager.createNotificationChannel(mChannel);
+			}
+	        int type = 0;
+	        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+	            type = ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE;
+	        }
+	        startForeground(notificationId, notification.build(), type);
+	    }
+		return super.onBind(intent);
+	}
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId)
@@ -737,6 +772,13 @@ public class NotificationScannerService extends NotificationListenerService
 		// TODO: Implement this method
 		super.onListenerDisconnected();
 		NLConnected = false;
+	}
+
+	@Override
+	public boolean onUnbind(Intent intent)
+	{
+		notification = null;
+		return super.onUnbind(intent);
 	}
 
 	private boolean isMyServiceRunning(Class<?> serviceClass) {

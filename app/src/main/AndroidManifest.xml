@@ -45,6 +45,7 @@
 		<service
 			android:name=".NotificationScannerService"
 			android:label="Notification Service"
+            android:foregroundServiceType="specialUse"
 			android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
 			android:exported="false">
 			<intent-filter>
@@ -57,8 +58,7 @@
 			android:label="Chat Head Service"
             android:foregroundServiceType="specialUse"
 			android:permission="android.permission.SYSTEM_ALERT_WINDOW"
-            android:exported="false"
-            android:largeHeap="true"/>
+            android:exported="false"/>
         
         <!--meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"

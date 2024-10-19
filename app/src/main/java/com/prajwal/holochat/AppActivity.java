@@ -177,11 +177,11 @@ public class AppActivity extends Activity
 				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
 			}
 			else
-			if (!((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName())) 
+			/*if (!((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName())) 
 			{
 			    Intent intentPermissionDisableBatteryOptimization = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName()));
 			    startActivityForResult(intentPermissionDisableBatteryOptimization, CODE_BATTERY_OPTIMIZATION);
-			}else
+			}else*/
 			if(pendingPermissions.size() > 0)
 			{
 				requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
@@ -2561,8 +2561,8 @@ public class AppActivity extends Activity
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
 	{
 		if(NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName())
-			&& Settings.canDrawOverlays(this)
-			&& ((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName()))
+			&& Settings.canDrawOverlays(this))
+			//&& ((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName()))
 			copyAssets();
 		// TODO: Implement this method
 		if(requestCode == CODE_DRAW_OVER_OTHER_APP_PERMISSION)
@@ -2578,11 +2578,11 @@ public class AppActivity extends Activity
 				Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
 				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
 			}else
-			if (!((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName())) 
+			/*if (!((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName())) 
 			{
 			    Intent intentPermissionDisableBatteryOptimization = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName()));
 			    startActivityForResult(intentPermissionDisableBatteryOptimization, CODE_BATTERY_OPTIMIZATION);
-			}else
+			}else*/
 			if(pendingPermissions.size() > 0)
 			{
 				requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
@@ -2596,17 +2596,17 @@ public class AppActivity extends Activity
 				Intent intentPermissionNotificationAccess = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS);
 				startActivityForResult(intentPermissionNotificationAccess, CODE_NOTIFICATION_ACCESS);
 			}else
-			if (!((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName())) 
+			/*if (!((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName())) 
 			{
 			    Intent intentPermissionDisableBatteryOptimization = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + getPackageName()));
 			    startActivityForResult(intentPermissionDisableBatteryOptimization, CODE_BATTERY_OPTIMIZATION);
-			}else
+			}else*/
 			if(pendingPermissions.size() > 0)
 			{
 				requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
 			}
-		}
-		if(requestCode == CODE_BATTERY_OPTIMIZATION)
+		}else
+		/*if(requestCode == CODE_BATTERY_OPTIMIZATION)
 		{
 			if (!((PowerManager)getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName())) 
 			{
@@ -2619,7 +2619,7 @@ public class AppActivity extends Activity
 				requestPermissions(pendingPermissions.toArray(new String[]{}), CODE_COMMON);
 			}
 		}
-		else
+		else*/
 			super.onActivityResult(requestCode, resultCode, data);
 	}
 
